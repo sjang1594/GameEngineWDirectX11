@@ -31,8 +31,7 @@
 
 #include <wrl/client.h>
 
-#include <d3d11_1.h>
-#include <dxgi1_2.h>
+#include <dxgi1_4.h>
 #include <DirectXMath.h>
 #include <DirectXColors.h>
 
@@ -44,6 +43,8 @@
 #include <memory>
 #include <stdexcept>
 #include <tuple>
+
+#include <dxgi.h> 
 
 namespace DX
 {
