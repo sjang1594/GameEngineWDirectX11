@@ -34,6 +34,7 @@
 #include <dxgi1_4.h>
 #include <DirectXMath.h>
 #include <DirectXColors.h>
+#include <d3dcompiler.h>
 
 #include <algorithm>
 #include <cmath>
@@ -43,6 +44,7 @@
 #include <memory>
 #include <stdexcept>
 #include <tuple>
+#include <string>
 
 #include <dxgi.h> 
 

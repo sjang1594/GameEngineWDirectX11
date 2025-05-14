@@ -9,6 +9,7 @@ auto MakeBox() {
 
     const float scale = 1.0f;
 
+// À­¸é
     positions.push_back(Vector3(-1.0f, 1.0f, -1.0f) * scale);
     positions.push_back(Vector3(-1.0f, 1.0f, 1.0f) * scale);
     positions.push_back(Vector3(1.0f, 1.0f, 1.0f) * scale);
@@ -21,6 +22,71 @@ auto MakeBox() {
     normals.push_back(Vector3(0.0f, 1.0f, 0.0f));
     normals.push_back(Vector3(0.0f, 1.0f, 0.0f));
     normals.push_back(Vector3(0.0f, 1.0f, 0.0f));
+    // ¾Æ·§¸é
+    positions.push_back(Vector3(-1.0f, -1.0f, -1.0f) * scale);
+    positions.push_back(Vector3(1.0f, -1.0f, -1.0f) * scale);
+    positions.push_back(Vector3(1.0f, -1.0f, 1.0f) * scale);
+    positions.push_back(Vector3(-1.0f, -1.0f, 1.0f) * scale);
+    colors.push_back(Vector3(0.0f, 1.0f, 0.0f));
+    colors.push_back(Vector3(0.0f, 1.0f, 0.0f));
+    colors.push_back(Vector3(0.0f, 1.0f, 0.0f));
+    colors.push_back(Vector3(0.0f, 1.0f, 0.0f));
+    normals.push_back(Vector3(0.0f, -1.0f, 0.0f));
+    normals.push_back(Vector3(0.0f, -1.0f, 0.0f));
+    normals.push_back(Vector3(0.0f, -1.0f, 0.0f));
+    normals.push_back(Vector3(0.0f, -1.0f, 0.0f));
+    // ¾Õ¸é
+    positions.push_back(Vector3(-1.0f, -1.0f, -1.0f) * scale);
+    positions.push_back(Vector3(-1.0f, 1.0f, -1.0f) * scale);
+    positions.push_back(Vector3(1.0f, 1.0f, -1.0f) * scale);
+    positions.push_back(Vector3(1.0f, -1.0f, -1.0f) * scale);
+    colors.push_back(Vector3(0.0f, 0.0f, 1.0f));
+    colors.push_back(Vector3(0.0f, 0.0f, 1.0f));
+    colors.push_back(Vector3(0.0f, 0.0f, 1.0f));
+    colors.push_back(Vector3(0.0f, 0.0f, 1.0f));
+    normals.push_back(Vector3(0.0f, 0.0f, -1.0f));
+    normals.push_back(Vector3(0.0f, 0.0f, -1.0f));
+    normals.push_back(Vector3(0.0f, 0.0f, -1.0f));
+    normals.push_back(Vector3(0.0f, 0.0f, -1.0f));
+    // µÞ¸é
+    positions.push_back(Vector3(-1.0f, -1.0f, 1.0f) * scale);
+    positions.push_back(Vector3(1.0f, -1.0f, 1.0f) * scale);
+    positions.push_back(Vector3(1.0f, 1.0f, 1.0f) * scale);
+    positions.push_back(Vector3(-1.0f, 1.0f, 1.0f) * scale);
+    colors.push_back(Vector3(0.0f, 1.0f, 1.0f));
+    colors.push_back(Vector3(0.0f, 1.0f, 1.0f));
+    colors.push_back(Vector3(0.0f, 1.0f, 1.0f));
+    colors.push_back(Vector3(0.0f, 1.0f, 1.0f));
+    normals.push_back(Vector3(0.0f, 0.0f, 1.0f));
+    normals.push_back(Vector3(0.0f, 0.0f, 1.0f));
+    normals.push_back(Vector3(0.0f, 0.0f, 1.0f));
+    normals.push_back(Vector3(0.0f, 0.0f, 1.0f));
+    // ¿ÞÂÊ
+    positions.push_back(Vector3(-1.0f, -1.0f, 1.0f) * scale);
+    positions.push_back(Vector3(-1.0f, 1.0f, 1.0f) * scale);
+    positions.push_back(Vector3(-1.0f, 1.0f, -1.0f) * scale);
+    positions.push_back(Vector3(-1.0f, -1.0f, -1.0f) * scale);
+    colors.push_back(Vector3(1.0f, 1.0f, 0.0f));
+    colors.push_back(Vector3(1.0f, 1.0f, 0.0f));
+    colors.push_back(Vector3(1.0f, 1.0f, 0.0f));
+    colors.push_back(Vector3(1.0f, 1.0f, 0.0f));
+    normals.push_back(Vector3(-1.0f, 0.0f, 0.0f));
+    normals.push_back(Vector3(-1.0f, 0.0f, 0.0f));
+    normals.push_back(Vector3(-1.0f, 0.0f, 0.0f));
+    normals.push_back(Vector3(-1.0f, 0.0f, 0.0f));
+    // ¿À¸¥ÂÊ
+    positions.push_back(Vector3(1.0f, -1.0f, 1.0f) * scale);
+    positions.push_back(Vector3(1.0f, -1.0f, -1.0f) * scale);
+    positions.push_back(Vector3(1.0f, 1.0f, -1.0f) * scale);
+    positions.push_back(Vector3(1.0f, 1.0f, 1.0f) * scale);
+    colors.push_back(Vector3(1.0f, 0.0f, 1.0f));
+    colors.push_back(Vector3(1.0f, 0.0f, 1.0f));
+    colors.push_back(Vector3(1.0f, 0.0f, 1.0f));
+    colors.push_back(Vector3(1.0f, 0.0f, 1.0f));
+    normals.push_back(Vector3(1.0f, 0.0f, 0.0f));
+    normals.push_back(Vector3(1.0f, 0.0f, 0.0f));
+    normals.push_back(Vector3(1.0f, 0.0f, 0.0f));
+    normals.push_back(Vector3(1.0f, 0.0f, 0.0f));
 
     vector<Vertex> vertices;
     for (size_t i = 0; i < positions.size(); i++) {
@@ -29,10 +95,14 @@ auto MakeBox() {
         v.color = colors[i];
         vertices.push_back(v);
     }
-
     
     vector<uint16_t> indices = {
-        0, 1, 2, 0, 2, 3,
+        0,  1,  2,  0,  2,  3,  // Upside
+        4,  5,  6,  4,  6,  7,  // downside
+        8,  9,  10, 8,  10, 11, // frontside
+        12, 13, 14, 12, 14, 15, // backside
+        16, 17, 18, 16, 18, 19, // leftside
+        20, 21, 22, 20, 22, 23  // rightside
     };
 
     return std::tuple{vertices, indices};
@@ -65,10 +135,10 @@ bool App::Initialize() {
         {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 4 * 3, D3D11_INPUT_PER_VERTEX_DATA, 0},
     };
 
-    EngineBase::CreateVertexShaderAndInputLayout(L"ColorVertexShader.hlsl", inputElements,
+    EngineBase::CreateVertexShaderAndInputLayout(L"Color.vert.hlsl", inputElements,
                                               _colorVertexShader, _colorInputLayout);
 
-    EngineBase::CreatePixelShader(L"ColorPixelShader.hlsl", _colorPixelShader);
+    EngineBase::CreatePixelShader(L"Color.frag.hlsl", _colorPixelShader);
 
     return true; 
 }
@@ -84,7 +154,7 @@ void App::Update(float dt) {
                                  Matrix::CreateTranslation(Vector3(0.0f, -0.3f, 1.0f));
     _constantBufferData.model = _constantBufferData.model.Transpose();
 
-        using namespace DirectX;
+    using namespace DirectX;
 
     // ½ÃÁ¡ º¯È¯
     _constantBufferData.view =
@@ -130,6 +200,4 @@ void App::Render() {
     _d3dContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     _d3dContext->DrawIndexed(_indexCount, 0, 0);
 }
-
-
 } // namespace Luna

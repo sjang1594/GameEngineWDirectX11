@@ -121,7 +121,7 @@ bool EngineBase::InitMainWindow() {
     wcex.hInstance = GetModuleHandle(nullptr);   
     wcex.hIcon = LoadIcon(nullptr, MAKEINTRESOURCE(IDC_ICON)); 
     wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);  
-    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    wcex.hbrBackground = nullptr;
     wcex.lpszMenuName = nullptr;                     
     wcex.lpszClassName = L"LunaEngine - DriectX11";             
     wcex.hIconSm = LoadIcon(nullptr, MAKEINTRESOURCE(IDC_ICON));   
@@ -251,6 +251,7 @@ bool EngineBase::InitD3D() {
     rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
     rastDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
     rastDesc.FrontCounterClockwise = false;
+    rastDesc.DepthClipEnable = true;
 
     hr = _d3dDevice->CreateRasterizerState(&rastDesc, &_d3dRasterizerState);
     if (FAILED(hr)) {
@@ -310,6 +311,17 @@ bool EngineBase::InitD3D() {
         PrintErrorMessage(hr, "Failed to create Depth Stencil State");
         return false;
     }
+
+    ZeroMemory(&_screenViewport, sizeof(D3D11_VIEWPORT));
+    _screenViewport.TopLeftX = 0;
+    _screenViewport.TopLeftY = 0;
+    _screenViewport.Width = float(_screenWidth);
+    _screenViewport.Height = float(_screenHeight);
+    // m_screenViewport.Width = static_cast<float>(m_screenHeight);
+    _screenViewport.MinDepth = 0.0f;
+    _screenViewport.MaxDepth = 1.0f; // Note: important for depth buffering
+
+    _d3dContext->RSSetViewports(1, &_screenViewport);
     return true;
 }
 
