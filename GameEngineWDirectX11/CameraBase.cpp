@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Camera.h"
 #include "CameraBase.h"
+#include "ICameraController.h"
 
 namespace Luna {
 
@@ -58,6 +58,14 @@ void CameraBase::UpdateViewMatrix() {
     m_projDirty = false;
 }
 
+void RunTimeCamera::Update(float dt, const InputState &input) {
+    if (m_controller) {
+        m_controller->UpdateCamera(*this, dt, input);
+    }
+}
 
+void RunTimeCamera::SetController(std::unique_ptr<ICameraController> controller) {
+    m_controller = std::move(controller);
+}
 
 } // namespace Luna
