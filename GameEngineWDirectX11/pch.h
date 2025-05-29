@@ -26,8 +26,14 @@
 // WinHelp is deprecated
 #define NOHELP
 
+// fix stb_image_write compiler error
+#define _CRT_SECURE_NO_WARNINGS
+
+
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <windowsx.h>
+#include <comdef.h>
 
 #include <wrl/client.h>
 
@@ -46,18 +52,20 @@
 #include <tuple>
 #include <string>
 #include <vector>
+
+
 #include <DirectXMath.h>
+#include <dxgi.h>
 
-#include <dxgi.h> 
+#include <DirectXTexEXR.h> // For EXR HDRI
 
-namespace DX
+#include <fp16.h>
+
+inline void ThrowIfFailed(HRESULT hr)
 {
-    inline void ThrowIfFailed(HRESULT hr)
+    if (FAILED(hr))
     {
-        if (FAILED(hr))
-        {
-            // Set a breakpoint on this line to catch DirectX API errors
-            throw std::exception();
-        }
+        // Set a breakpoint on this line to catch DirectX API errors
+        throw std::exception();
     }
 }
