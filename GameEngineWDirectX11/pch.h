@@ -45,6 +45,8 @@
 #include <stdexcept>
 #include <tuple>
 #include <string>
+#include <vector>
+#include <DirectXMath.h>
 
 #include <dxgi.h> 
 
