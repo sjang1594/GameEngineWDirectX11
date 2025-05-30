@@ -184,19 +184,39 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="App.h" />
+    <ClInclude Include="CameraBase.h" />
+    <ClInclude Include="ConstantBuffer.h" />
+    <ClInclude Include="D3D11Utils.h" />
     <ClInclude Include="EngineBase.h" />
+    <ClInclude Include="CameraController.h" />
+    <ClInclude Include="GraphicsCommon.h" />
+    <ClInclude Include="GraphicsPSO.h" />
+    <ClInclude Include="InputSystem.h" />
+    <ClInclude Include="Mesh.h" />
+    <ClInclude Include="MeshData.h" />
+    <ClInclude Include="GeometryGenerator.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="Vertex.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="App.cpp" />
+    <ClCompile Include="CameraBase.cpp" />
+    <ClCompile Include="ConstantBuffer.cpp" />
+    <ClCompile Include="D3D11Utils.cpp" />
     <ClCompile Include="EngineBase.cpp" />
+    <ClCompile Include="CameraController.cpp" />
+    <ClCompile Include="GraphicsCommon.cpp" />
+    <ClCompile Include="GraphicsPSO.cpp" />
+    <ClCompile Include="InputSystem.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="GeometryGenerator.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Vertex.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -209,13 +229,17 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\.clang-format" />
+    <None Include="..\README.md" />
+    <None Include="Common.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Color.frag.hlsl">
+    <FxCompile Include="BasePass.frag.hlsl">
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
     </FxCompile>
-    <FxCompile Include="Color.vert.hlsl">
+    <FxCompile Include="BasePass.vert.hlsl">
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
     </FxCompile>

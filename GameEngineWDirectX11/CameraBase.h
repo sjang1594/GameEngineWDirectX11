@@ -53,6 +53,6 @@ class RunTimeCamera : public CameraBase {
     void SetController(std::unique_ptr<class ICameraController> controller);
 
   private:
-    std::unique_ptr<ICameraController> m_controller;
+    std::unique_ptr<class ICameraController> m_controller;
 };
 } // namespace Luna

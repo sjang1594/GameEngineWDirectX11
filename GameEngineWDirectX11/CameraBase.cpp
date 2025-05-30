@@ -1,13 +1,14 @@
 #include "pch.h"
 #include "CameraBase.h"
-#include "ICameraController.h"
+#include "CameraController.h"
+#include <memory>
 
 namespace Luna {
 
 Luna::CameraBase::CameraBase(const CameraSpec &spec) 
 : m_spec(spec)
-, m_position(Vector3::Zero)
-, m_rotation(Quaternion::Identity)
+, m_position(Vector3(0.0f, 0.0f, 0.0f))
+, m_rotation(Quaternion(0.0f, 0.0f, 0.0f, 1.0f))
 , m_viewDirty(true)
 , m_projDirty(true) 
 {
@@ -40,13 +41,13 @@ void CameraBase::SetTransform(const Vector3 &position, const Quaternion &rotatio
 
 void CameraBase::LookAt(const Vector3 &target) { 
     Vector3 forward = Vector3(target - m_position);
-    m_rotation = Quaternion::LookRotation(forward, Vector3::Up);
+    m_rotation = Quaternion::LookRotation(forward, Vector3(0.0f, 1.0f, 0.0f));
     m_viewDirty = true;
 }
 
 void CameraBase::UpdateProjectionMatrix() {
-    Vector3 forward = Vector3::Transform(Vector3::Forward, m_rotation);
-    Vector3 up = Vector3::Transform(Vector3::Up, m_rotation);
+    Vector3 forward = Vector3::Transform(Vector3(0.0f, 0.0f, 1.0f), m_rotation);
+    Vector3 up = Vector3::Transform(Vector3(0.0f, 1.0f, 0.0f), m_rotation);
     m_viewMatrix = Matrix::CreateLookAt(m_position, m_position + forward, up);
     m_viewDirty = false;
 }

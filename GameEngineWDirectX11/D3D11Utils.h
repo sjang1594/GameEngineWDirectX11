@@ -84,10 +84,10 @@ inline void D3D11Utils::CreateVertexBuffer(ComPtr<ID3D11Device> &device, const v
     D3D11_BUFFER_DESC bufferDesc;
     ZeroMemory(&bufferDesc, sizeof(bufferDesc));
     bufferDesc.Usage = D3D11_USAGE_IMMUTABLE; // Don't Change After Init
-    bufferDesc.ByteWidth = UINT(sizeof(T_VERTEX) * vertices.size());
+    bufferDesc.ByteWidth = UINT(sizeof(T) * vertices.size());
     bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
     bufferDesc.CPUAccessFlags = 0; // 0 if no CPU access is necessary.
-    bufferDesc.StructureByteStride = sizeof(T_VERTEX);
+    bufferDesc.StructureByteStride = sizeof(T);
 
     D3D11_SUBRESOURCE_DATA vertexBufferData = {0};
     vertexBufferData.pSysMem = vertices.data();
@@ -103,7 +103,7 @@ inline void D3D11Utils::CreateConstantBuffer(ComPtr<ID3D11Device> &device,
                                              const T &constantBufferData,
                                              ComPtr<ID3D11Buffer> &constantBuffer) {
     // NOTE
-    static_assert((sizeof(T_CONSTANT) % 16) == 0, "Constant Buffer size must be 16-byte aligned");
+    static_assert((sizeof(T) % 16) == 0, "Constant Buffer size must be 16-byte aligned");
 
     D3D11_BUFFER_DESC desc;
     ZeroMemory(&desc, sizeof(desc));

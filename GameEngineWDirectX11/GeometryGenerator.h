@@ -6,6 +6,7 @@
 #include "MeshData.h"
 
 namespace Luna {
+using namespace DirectX;
 using DirectX::SimpleMath::Vector2;
 using DirectX::SimpleMath::Matrix;
 

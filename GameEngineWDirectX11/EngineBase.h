@@ -8,10 +8,18 @@
 #include <iostream>
 #include <vector>
 #include <windows.h>
-#include <wrl.h> 
+#include <wrl.h>
+
+#include <directxtk/SimpleMath.h>
+#include <DirectXCollision.h>
+#include "InputSystem.h"
+#include "ConstantBuffer.h"
 
 namespace Luna {
 	using Microsoft::WRL::ComPtr;
+    using DirectX::BoundingSphere;
+    using DirectX::SimpleMath::Quaternion;
+    using DirectX::SimpleMath::Vector3;
 	using std::vector;
 	using std::wstring;
 	
@@ -19,8 +27,7 @@ namespace Luna {
       public:
         EngineBase();
         virtual ~EngineBase();
-
-        float GetAspectRatio() const;
+        float GetAspectRatio() const { return float(m_screenWidth) / m_screenHeight; }
 
         int Run();
 
@@ -28,98 +35,52 @@ namespace Luna {
         virtual void UpdateGUI() = 0;
         virtual void Update(float dt) = 0;
         virtual void Render() = 0;
-
         virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-        virtual void OnMouseDown(WPARAM btnState, int x, int y) {};
-        virtual void OnMouseUp(WPARAM btnState, int x, int y) {};
-        virtual void OnMouseMove(WPARAM btnState, int x, int y) {};
+        
+        void SetGlobalConstants(ComPtr<ID3D11Buffer>& buffer);
 
       protected:
         bool InitMainWindow();
         bool InitD3D();
         bool InitGUI();
-        void CreateVertexShaderAndInputLayout(const wstring &filename,
-                                              const vector<D3D11_INPUT_ELEMENT_DESC> &inputElements,
-                                              ComPtr<ID3D11VertexShader> &vertexShader,
-                                              ComPtr<ID3D11InputLayout> &inputLayout);
-        void CreatePixelShader(const wstring &filename, ComPtr<ID3D11PixelShader> &pixelShader);
-        void CreateIndexBuffer(const vector<uint16_t> &indices,
-                               ComPtr<ID3D11Buffer> &_indexBuffer);
-
-        template <typename T_VERT>
-        void CreateVertexBuffer(const vector<T_VERT> &vertices,
-                                ComPtr<ID3D11Buffer> &vertexBuffer) {
-
-            D3D11_BUFFER_DESC bufferDesc;
-            ZeroMemory(&bufferDesc, sizeof(bufferDesc));
-            bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-            bufferDesc.ByteWidth = UINT(sizeof(T_VERT) * vertices.size());
-            bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-            bufferDesc.CPUAccessFlags = 0; 
-            bufferDesc.StructureByteStride = sizeof(T_VERT);
-
-            D3D11_SUBRESOURCE_DATA vertexBufferData = {0};
-            vertexBufferData.pSysMem = vertices.data();
-            vertexBufferData.SysMemPitch = 0;
-            vertexBufferData.SysMemSlicePitch = 0;
-
-            const HRESULT hr = _d3dDevice->CreateBuffer(&bufferDesc, &vertexBufferData,
-                                                        vertexBuffer.GetAddressOf());
-            if (FAILED(hr)) {
-                std::cout << "CreateBuffer() failed. " << std::hex << hr << std::endl;
-            };
-        }
-
-        template <typename T_CONST>
-        void CreateConstantBuffer(const T_CONST &constantBufferData,
-                                  ComPtr<ID3D11Buffer> &constantBuffer) {
-            D3D11_BUFFER_DESC bufferDesc;
-            bufferDesc.ByteWidth = sizeof(constantBufferData);
-            bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-            bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-            bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-            bufferDesc.MiscFlags = 0;
-            bufferDesc.StructureByteStride = 0;
-
-            // Fill in the subresource data.
-            D3D11_SUBRESOURCE_DATA InitData;
-            InitData.pSysMem = &constantBufferData;
-            InitData.SysMemPitch = 0;
-            InitData.SysMemSlicePitch = 0;
-
-            _d3dDevice->CreateBuffer(&bufferDesc, &InitData, constantBuffer.GetAddressOf());
-        }
-
-        template <typename T_DATA>
-        void UpdateBuffer(const T_DATA &bufferData, ComPtr<ID3D11Buffer> &buffer) {
-            D3D11_MAPPED_SUBRESOURCE ms;
-            _d3dContext->Map(buffer.Get(), NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
-            memcpy(ms.pData, &bufferData, sizeof(bufferData));
-            _d3dContext->Unmap(buffer.Get(), NULL);
-        }
+        void CreateBuffers();
+        void SetMainViewport();
 
       public:
-        HWND                            _mainWindow;
-        int                             _screenWidth;
-        int                             _screenHeight;
-        bool                            _fullscreen;
-        bool                            _enableDepthTest;
-        bool                            _enableDepthWrite;
-        bool                            _wireframe;
+        HWND m_mainWindow;
+        int m_screenWidth;
+        int m_screenHeight;
+        bool m_fullscreen;
+        bool m_enableDepthTest;
+        bool m_enableDepthWrite;
+        bool m_wireframe = false;
+        bool m_useMSAA = true;
+        UINT m_numQualityLevels = 0;
 
+        D3D11_VIEWPORT                  m_screenViewport;
 
-        D3D11_VIEWPORT                  _screenViewport;
-        ComPtr<ID3D11Device>            _d3dDevice;
-        ComPtr<ID3D11DeviceContext>     _d3dContext;
-        ComPtr<IDXGIFactory1>           _dxgiFactory;
-        ComPtr<ID3D11RenderTargetView>  _d3dRenderTargetView;
-        ComPtr<IDXGISwapChain>          _d3dSwapChain;
-        ComPtr<ID3D11RasterizerState>   _d3dRasterizerState;
+        ComPtr<ID3D11Device>            m_d3dDevice;
+        ComPtr<ID3D11DeviceContext>     m_d3dContext;
+        ComPtr<IDXGIFactory1>           m_dxgiFactory;
+        ComPtr<IDXGISwapChain>          m_d3dSwapChain;
+        ComPtr<ID3D11RasterizerState>   m_d3dRasterizerState;
+        ComPtr<ID3D11RenderTargetView>  m_d3dBackBufferRTV;
+        
+        ComPtr<ID3D11Texture2D>         m_d3dDepthStencilBuffer;
+        ComPtr<ID3D11DepthStencilView>  m_d3dDepthStencilView;
+        ComPtr<ID3D11DepthStencilState> m_d3dDepthStencilState;
 
-        ComPtr<ID3D11Texture2D>         _d3dDepthStencilBuffer;
-        ComPtr<ID3D11DepthStencilView>  _d3dDepthStencilView;
-        ComPtr<ID3D11DepthStencilState> _d3dDepthStencilState;
+        // Resource
+        ComPtr<ID3D11Texture2D> m_floatBuffer;
+        ComPtr<ID3D11Texture2D> m_resolvedBuffer;
+        ComPtr<ID3D11RenderTargetView> m_floatRTV;
+        ComPtr<ID3D11RenderTargetView> m_resolvedRTV;
+        ComPtr<ID3D11ShaderResourceView> m_resolvedSRV;
+        
+        GlobalConstants m_globalConstsCPU;
+        ComPtr<ID3D11Buffer> m_globalConstsGPU;
+
+        InputState m_inputState;
 
 	};
 }

@@ -1,5 +1,4 @@
 #include "pch.h"
-#include <comdef.h>
 #include "EngineBase.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam,
@@ -17,8 +16,9 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 
 EngineBase::EngineBase()
-    : _fullscreen(false), _enableDepthTest(true), _enableDepthWrite(false), _wireframe(false),
-      _screenWidth(1280), _screenHeight(960), _mainWindow(0), _screenViewport(D3D11_VIEWPORT()) {
+    : m_fullscreen(false), m_enableDepthTest(true), m_enableDepthWrite(false), m_wireframe(false),
+      m_screenWidth(1280), m_screenHeight(960), m_mainWindow(0),
+      m_screenViewport(D3D11_VIEWPORT()) {
 
     g_engeinBase = this;
 }
@@ -30,14 +30,14 @@ EngineBase::~EngineBase() {
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
 
-    DestroyWindow(_mainWindow);
+    DestroyWindow(m_mainWindow);
 }
-
-float EngineBase::GetAspectRatio() const { return float(_screenWidth) / _screenHeight; }
 
 int EngineBase::Run() {
     MSG msg = {0};
     while (WM_QUIT != msg.message) {
+        m_inputState.ClearFrameDelta();
+
         if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
@@ -48,9 +48,9 @@ int EngineBase::Run() {
             ImGui::NewFrame();
             ImGui::Begin("Scene Control");
 
-            // ImGui가 측정해주는 Framerate 출력
-            ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
-                        ImGui::GetIO().Framerate);
+            ImGui::Text("Average %.3f ms/frame (%.1f FPS)",
+                1000.0f / ImGui::GetIO().Framerate,
+                ImGui::GetIO().Framerate);
 
             UpdateGUI();
 
@@ -62,7 +62,8 @@ int EngineBase::Run() {
             Render();
 
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-            _d3dSwapChain->Present(1, 0);
+
+            m_d3dSwapChain->Present(1, 0);
         }
     }
 
@@ -80,6 +81,8 @@ bool EngineBase::Initialize() {
     if (!InitGUI())
         return false;
 
+    // Prevent console window to cover the rendered window
+    SetForegroundWindow(m_mainWindow);
     return true;
 }
 
@@ -90,18 +93,48 @@ LRESULT EngineBase::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
     switch (msg) {
     case WM_SIZE:
+        if (m_d3dSwapChain){
+            m_screenWidth = int(LOWORD(lParam));
+            m_screenHeight = int(HIWORD(lParam));
+
+            m_d3dSwapChain->ResizeBuffers(0, 
+                (UINT)LOWORD(lParam), (UINT)HIWORD(lParam), DXGI_FORMAT_UNKNOWN, 0);
+
+            CreateBuffers();
+            SetMainViewport();
+        }
         break;
     case WM_SYSCOMMAND:
         if ((wParam & 0xfff0) == SC_KEYMENU)
             return 0;
         break;
-    case WM_MOUSEMOVE:
+    case WM_MOUSEMOVE: {
+        int x = GET_X_LPARAM(lParam);
+        int y = GET_Y_LPARAM(lParam);
+        std::cout << "x: " << x << "y:" << y << std::endl;
+        m_inputState.SetMousePosition({float(x), float(y)});
+        break;
+    }
+    case WM_LBUTTONDOWN:
+        m_inputState.SetMouseButton(MouseButton::Left, true);
         break;
     case WM_LBUTTONUP:
+        m_inputState.SetMouseButton(MouseButton::Left, false);
+        break;
+    case WM_RBUTTONDOWN:
+        m_inputState.SetMouseButton(MouseButton::Right, true);
         break;
     case WM_RBUTTONUP:
+        m_inputState.SetMouseButton(MouseButton::Right, false);
         break;
     case WM_KEYDOWN:
+        if (wParam == VK_ESCAPE) {
+            DestroyWindow(hwnd);
+        }
+        m_inputState.SetKeyState(static_cast<Key>(wParam), true);
+        break;
+    case WM_KEYUP:
+        m_inputState.SetKeyState(static_cast<Key>(wParam), false);
         break;
     case WM_DESTROY:
         ::PostQuitMessage(0);
@@ -109,6 +142,11 @@ LRESULT EngineBase::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     }
 
     return ::DefWindowProc(hwnd, msg, wParam, lParam);
+}
+
+void EngineBase::SetGlobalConstants(ComPtr<ID3D11Buffer> &buffer) {
+    m_d3dContext->VSSetConstantBuffers(1, 1, buffer.GetAddressOf());
+    m_d3dContext->PSSetConstantBuffers(1, 1, buffer.GetAddressOf());
 }
 
 bool EngineBase::InitMainWindow() {
@@ -131,23 +169,23 @@ bool EngineBase::InitMainWindow() {
         return false;
     }
 
-    RECT wr = {0, 0, _screenWidth, _screenHeight};
+    RECT wr = {0, 0, m_screenWidth, m_screenHeight};
     AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, false);
 
-    _mainWindow = CreateWindow(wcex.lpszClassName, L"LunaEngine Example", WS_OVERLAPPEDWINDOW,
+    m_mainWindow = CreateWindow(wcex.lpszClassName, L"LunaEngine Example", WS_OVERLAPPEDWINDOW,
                                 100,                // X position
                                 100,                // Y position
                                 wr.right - wr.left, // Window width
                                 wr.bottom - wr.top, // Window height
                                 nullptr, nullptr, wcex.hInstance, nullptr);
 
-    if (!_mainWindow) {
+    if (!m_mainWindow) {
         std::cout << "CreateWindow() failed: LunaEngine Example" << std::endl;
         return false;
     }
 
-    ShowWindow(_mainWindow, SW_SHOWDEFAULT);
-    UpdateWindow(_mainWindow);
+    ShowWindow(m_mainWindow, SW_SHOWDEFAULT);
+    UpdateWindow(m_mainWindow);
 
     return true;
 }
@@ -166,7 +204,7 @@ bool EngineBase::InitD3D() {
 
     D3D_FEATURE_LEVEL featureLevel;
 
-    HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(&_dxgiFactory));
+    HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(&m_dxgiFactory));
     if (FAILED(hr)) {
         PrintErrorMessage(hr, "Failed to Create DXGI Factory");
         return false;
@@ -174,7 +212,7 @@ bool EngineBase::InitD3D() {
 
     ComPtr<IDXGIAdapter1> adapter;
     bool deviceCreated = false;
-    for (UINT i = 0; _dxgiFactory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i) {
+    for (UINT i = 0; m_dxgiFactory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i) {
         DXGI_ADAPTER_DESC1 desc;
         adapter->GetDesc1(&desc);
         std::wcout << L"Adapter: " << desc.Description << std::endl;
@@ -186,7 +224,7 @@ bool EngineBase::InitD3D() {
 
         hr = D3D11CreateDevice(adapter.Get(), D3D_DRIVER_TYPE_UNKNOWN, nullptr, createDeviceFlags,
                                featureLevels, ARRAYSIZE(featureLevels), D3D11_SDK_VERSION,
-                               &_d3dDevice, &featureLevel, &_d3dContext);
+                               &m_d3dDevice, &featureLevel, &m_d3dContext);
 
         if (SUCCEEDED(hr)) {
             std::cout << "Direct3D 11 device created successfully with adapter" << std::endl;
@@ -211,7 +249,7 @@ bool EngineBase::InitD3D() {
     UINT maxSampleCount = 8;
     UINT numQualityLevels = 0;
     for (UINT sampleCount = maxSampleCount; sampleCount > 0; sampleCount /= 2) {
-        hr = _d3dDevice->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, sampleCount,
+        hr = m_d3dDevice->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, sampleCount,
                                                        &numQualityLevels);
         if (SUCCEEDED(hr) && numQualityLevels > 0) {
             std::cout << "MSAA supported with " << sampleCount << " samples and "
@@ -225,21 +263,21 @@ bool EngineBase::InitD3D() {
     }
 
     DXGI_SWAP_CHAIN_DESC sd = {};
-    sd.BufferDesc.Width = _screenWidth;
-    sd.BufferDesc.Height = _screenHeight;
+    sd.BufferDesc.Width = m_screenWidth;
+    sd.BufferDesc.Height = m_screenHeight;
     sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     sd.BufferDesc.RefreshRate.Numerator = 60;
     sd.BufferDesc.RefreshRate.Denominator = 1;
     sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     sd.BufferCount = 2;
-    sd.OutputWindow = _mainWindow;
+    sd.OutputWindow = m_mainWindow;
     sd.Windowed = TRUE;
     sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-    sd.Flags = _fullscreen ? DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH : 0;
+    sd.Flags = m_fullscreen ? DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH : 0;
     sd.SampleDesc.Count = (numQualityLevels > 1) ? 4 : 1;
     sd.SampleDesc.Quality = (numQualityLevels > 1) ? (numQualityLevels - 1) : 0;
 
-    hr = _dxgiFactory->CreateSwapChain(_d3dDevice.Get(), &sd, &_d3dSwapChain);
+    hr = m_dxgiFactory->CreateSwapChain(m_d3dDevice.Get(), &sd, &m_d3dSwapChain);
     if (FAILED(hr)) {
         PrintErrorMessage(hr, "Failed to create Swap Chain");
         return false;
@@ -253,30 +291,12 @@ bool EngineBase::InitD3D() {
     rastDesc.FrontCounterClockwise = false;
     rastDesc.DepthClipEnable = true;
 
-    hr = _d3dDevice->CreateRasterizerState(&rastDesc, &_d3dRasterizerState);
-    if (FAILED(hr)) {
-        PrintErrorMessage(hr, "Failed to create Rasterizer State");
-        return false;
-    }
-
-    // Render target view
-    ComPtr<ID3D11Texture2D> backBuffer;
-    hr = _d3dSwapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
-    if (FAILED(hr)) {
-        PrintErrorMessage(hr, "Failed to get the backBuffer");
-        return false;
-    }
-
-    hr = _d3dDevice->CreateRenderTargetView(backBuffer.Get(), nullptr, &_d3dRenderTargetView);
-    if (FAILED(hr)) {
-        PrintErrorMessage(hr, "Failed to create Render Target View");
-        return false;
-    }
+    CreateBuffers();
 
     // Depth stencil buffer and view
     D3D11_TEXTURE2D_DESC depthStencilBufferDesc = {};
-    depthStencilBufferDesc.Width = _screenWidth;
-    depthStencilBufferDesc.Height = _screenHeight;
+    depthStencilBufferDesc.Width = m_screenWidth;
+    depthStencilBufferDesc.Height = m_screenHeight;
     depthStencilBufferDesc.MipLevels = 1;
     depthStencilBufferDesc.ArraySize = 1;
     depthStencilBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -285,14 +305,15 @@ bool EngineBase::InitD3D() {
     depthStencilBufferDesc.Usage = D3D11_USAGE_DEFAULT;
     depthStencilBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 
-    hr = _d3dDevice->CreateTexture2D(&depthStencilBufferDesc, nullptr, _d3dDepthStencilBuffer.GetAddressOf());
+    hr = m_d3dDevice->CreateTexture2D(&depthStencilBufferDesc, nullptr,
+                                      m_d3dDepthStencilBuffer.GetAddressOf());
     if (FAILED(hr)) {
         PrintErrorMessage(hr, "Failed to create Depth Stencil Buffer");
         return false;
     }
 
-    hr = _d3dDevice->CreateDepthStencilView(_d3dDepthStencilBuffer.Get(), nullptr,
-                                            &_d3dDepthStencilView);
+    hr = m_d3dDevice->CreateDepthStencilView(m_d3dDepthStencilBuffer.Get(), nullptr,
+                                             &m_d3dDepthStencilView);
     if (FAILED(hr)) {
         PrintErrorMessage(hr, "Failed to create Depth Stencil View");
         return false;
@@ -305,23 +326,23 @@ bool EngineBase::InitD3D() {
     depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK::D3D11_DEPTH_WRITE_MASK_ALL;
     depthStencilDesc.DepthFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_LESS_EQUAL;
 
-    hr = _d3dDevice->CreateDepthStencilState(&depthStencilDesc,
-                                             _d3dDepthStencilState.GetAddressOf());
+    hr = m_d3dDevice->CreateDepthStencilState(&depthStencilDesc,
+                                              m_d3dDepthStencilState.GetAddressOf());
     if (FAILED(hr)) {
         PrintErrorMessage(hr, "Failed to create Depth Stencil State");
         return false;
     }
 
-    ZeroMemory(&_screenViewport, sizeof(D3D11_VIEWPORT));
-    _screenViewport.TopLeftX = 0;
-    _screenViewport.TopLeftY = 0;
-    _screenViewport.Width = float(_screenWidth);
-    _screenViewport.Height = float(_screenHeight);
+    ZeroMemory(&m_screenViewport, sizeof(D3D11_VIEWPORT));
+    m_screenViewport.TopLeftX = 0;
+    m_screenViewport.TopLeftY = 0;
+    m_screenViewport.Width = float(m_screenWidth);
+    m_screenViewport.Height = float(m_screenHeight);
     // m_screenViewport.Width = static_cast<float>(m_screenHeight);
-    _screenViewport.MinDepth = 0.0f;
-    _screenViewport.MaxDepth = 1.0f; // Note: important for depth buffering
+    m_screenViewport.MinDepth = 0.0f;
+    m_screenViewport.MaxDepth = 1.0f; // Note: important for depth buffering
 
-    _d3dContext->RSSetViewports(1, &_screenViewport);
+    m_d3dContext->RSSetViewports(1, &m_screenViewport);
     return true;
 }
 
@@ -330,82 +351,70 @@ bool EngineBase::InitGUI() {
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     (void)io;
-    io.DisplaySize = ImVec2(float(_screenWidth), float(_screenHeight));
+    io.DisplaySize = ImVec2(float(m_screenWidth), float(m_screenHeight));
     ImGui::StyleColorsLight();
 
     // Setup Platform/Renderer backends
-    if (!ImGui_ImplDX11_Init(_d3dDevice.Get(), _d3dContext.Get())) {
+    if (!ImGui_ImplDX11_Init(m_d3dDevice.Get(), m_d3dContext.Get())) {
         return false;
     }
 
-    if (!ImGui_ImplWin32_Init(_mainWindow)) {
+    if (!ImGui_ImplWin32_Init(m_mainWindow)) {
         return false;
     }
 
     return true;
 }
 
-void CheckResult(HRESULT hr, ID3DBlob *errorBlob) {
-    if (FAILED(hr)) {
-        if ((hr & D3D11_ERROR_FILE_NOT_FOUND) != 0) {
-            std::cout << "File not found." << std::endl;
-        }
+void EngineBase::CreateBuffers() { 
+    ComPtr<ID3D11Texture2D> backBuffer;
 
-        if (errorBlob) {
-            std::cout << "Shader compile error\n" << (char *)errorBlob->GetBufferPointer() << std::endl;
-        }
+    ThrowIfFailed(m_d3dSwapChain->GetBuffer(0, IID_PPV_ARGS(backBuffer.GetAddressOf())));
+    ThrowIfFailed(m_d3dDevice->CreateRenderTargetView(backBuffer.Get(), NULL,
+                                                      m_d3dBackBufferRTV.GetAddressOf()));
+    ThrowIfFailed(m_d3dDevice->CheckMultisampleQualityLevels(DXGI_FORMAT_R16G16B16A16_FLOAT, 4,
+                                                             &m_numQualityLevels));
+    D3D11_TEXTURE2D_DESC desc;
+    backBuffer->GetDesc(&desc);
+    desc.MipLevels = desc.ArraySize = 1;
+    desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+    desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    desc.Usage = D3D11_USAGE_DEFAULT; // COPY From Staging Textues
+    desc.MiscFlags = 0;
+    desc.CPUAccessFlags = 0;
+    if (m_useMSAA && m_numQualityLevels) {
+        desc.SampleDesc.Count = 4;
+        desc.SampleDesc.Quality = m_numQualityLevels - 1;
+    } else {
+        desc.SampleDesc.Count = 1;
+        desc.SampleDesc.Quality = 0;
     }
-}
 
-void EngineBase::CreateVertexShaderAndInputLayout(
-    const wstring &filename, const vector<D3D11_INPUT_ELEMENT_DESC> &inputElements,
-    ComPtr<ID3D11VertexShader> &vertexShader, ComPtr<ID3D11InputLayout> &inputLayout) {
+    ThrowIfFailed(m_d3dDevice->CreateTexture2D(&desc, NULL, m_floatBuffer.GetAddressOf()));
     
-    ComPtr<ID3DBlob> shaderBlob;
-    ComPtr<ID3DBlob> errorBlob;
+    // Float MSAA -> Resolve -> SRV / RTV
+    // disable MSAA
+    desc.SampleDesc.Count = 1; 
+    desc.SampleDesc.Quality = 0;
+    ThrowIfFailed(m_d3dDevice->CreateTexture2D(&desc, NULL, m_resolvedBuffer.GetAddressOf()));
+    ThrowIfFailed(m_d3dDevice->CreateShaderResourceView(m_resolvedBuffer.Get(), NULL,
+                                                        m_resolvedSRV.GetAddressOf()));
+    ThrowIfFailed(m_d3dDevice->CreateRenderTargetView(m_resolvedBuffer.Get(), NULL,
+                                                      m_resolvedRTV.GetAddressOf()));
 
-    HRESULT hr =
-        D3DCompileFromFile(filename.c_str(), 0, 0, "main", "vs_5_0", 0, 0, &shaderBlob, &errorBlob);
-    CheckResult(hr, errorBlob.Get());
+    // Create Depth Buffers
 
-    _d3dDevice->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(),
-                                   NULL,
-                                 &vertexShader);
-
-    _d3dDevice->CreateInputLayout(inputElements.data(), UINT(inputElements.size()),
-                                shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(),
-                                &inputLayout);
 }
 
-void EngineBase::CreatePixelShader(const wstring &filename,
-                                   ComPtr<ID3D11PixelShader> &pixelShader) {
-    ComPtr<ID3DBlob> shaderBlob;
-    ComPtr<ID3DBlob> errorBlob;
-
-    HRESULT hr =
-        D3DCompileFromFile(filename.c_str(), 0, 0, "main", "ps_5_0", 0, 0, &shaderBlob, &errorBlob);
-
-    CheckResult(hr, errorBlob.Get());
-
-    _d3dDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), NULL,
-                                &pixelShader);
-}
-
-void EngineBase::CreateIndexBuffer(const vector<uint16_t> &indices,
-                                   ComPtr<ID3D11Buffer> &_indexBuffer) {
-    D3D11_BUFFER_DESC bufferDesc = {};
-    bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-    bufferDesc.ByteWidth = UINT(sizeof(uint16_t) * indices.size());
-    bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    bufferDesc.CPUAccessFlags = 0; // 0 if no CPU access is necessary.
-    bufferDesc.StructureByteStride = sizeof(uint16_t);
-
-    D3D11_SUBRESOURCE_DATA indexBufferData = {0};
-    indexBufferData.pSysMem = indices.data();
-    indexBufferData.SysMemPitch = 0;
-    indexBufferData.SysMemSlicePitch = 0;
-
-    _d3dDevice->CreateBuffer(&bufferDesc, &indexBufferData, _indexBuffer.GetAddressOf());
+void EngineBase::SetMainViewport() { 
+    ZeroMemory(&m_screenViewport, sizeof(D3D11_VIEWPORT));
+    m_screenViewport.TopLeftX = 0;
+    m_screenViewport.TopLeftY = 0;
+    m_screenViewport.Width = float(m_screenWidth);
+    m_screenViewport.Height = float(m_screenHeight);
+    m_screenViewport.MinDepth = 0.0f;
+    m_screenViewport.MaxDepth = 1.0f;
+    m_d3dContext->RSSetViewports(1, &m_screenViewport);
 }
 
 } // namespace Luna
