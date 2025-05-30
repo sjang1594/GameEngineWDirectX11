@@ -12,6 +12,7 @@ bool App::Initialize() {
 }
 
 void App::Update(float dt) {
+
 }
 
 void App::Render() { 
@@ -25,7 +26,6 @@ void App::Render() {
     vector<ID3D11RenderTargetView *> rtvs = {m_floatRTV.Get()};
     m_d3dContext->ClearRenderTargetView(m_d3dBackBufferRTV.Get(), clearColor);
     EngineBase::SetGlobalConstants(m_globalConstsGPU);
-
     
     m_d3dContext->ResolveSubresource(m_resolvedBuffer.Get(), 0, m_floatBuffer.Get(), 0,
                                   DXGI_FORMAT_R16G16B16A16_FLOAT);
@@ -33,7 +33,8 @@ void App::Render() {
     m_d3dContext->OMSetRenderTargets(1, m_d3dBackBufferRTV.GetAddressOf(), NULL);
 }
 
-void App::UpdateGUI() {
-
+void App::UpdateGUI() { 
+    ImGui::Begin("InSpector"); 
+    ImGui::End();
 }
 } // namespace Luna
