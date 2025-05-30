@@ -23,7 +23,7 @@ void App::Render() {
 
     const float clearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
     vector<ID3D11RenderTargetView *> rtvs = {m_floatRTV.Get()};
-
+    m_d3dContext->ClearRenderTargetView(m_d3dBackBufferRTV.Get(), clearColor);
     EngineBase::SetGlobalConstants(m_globalConstsGPU);
 
     

@@ -32,6 +32,16 @@ GraphicsPSO defaultSolidPSO;
 GraphicsPSO defaultWirePSO;
 GraphicsPSO stencilMaskPSO;
 
+void InitCommonStates(ComPtr<ID3D11Device> &device) 
+{
+    InitShaders(device);
+    InitSamplers(device);
+    InitRasterizerStates(device);
+    InitBlendStates(device);
+    InitDepthStencilStates(device);
+    InitPipelineStates(device);
+}
+
 void InitSamplers(ComPtr<ID3D11Device> &device) {
     // Basic Samplers
     D3D11_SAMPLER_DESC sampDesc;
@@ -111,10 +121,10 @@ void InitShaders(ComPtr<ID3D11Device> &device) {
         {"TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0},
     };
 
-    D3D11Utils::CreateVertexShaderAndInputLayout(device, L"BassPass.vert.hlsl", basicIEs, basicVS,
+    D3D11Utils::CreateVertexShaderAndInputLayout(device, L"BasePass.vert.hlsl", basicIEs, basicVS,
                                                  basicIL);
 
-    D3D11Utils::CreatePixelShader(device, L"BasicPass.frag.hlsl", basicPS);
+    D3D11Utils::CreatePixelShader(device, L"BasePass.frag.hlsl", basicPS);
 }
 
 

@@ -33,6 +33,7 @@ using Microsoft::WRL::ComPtr;
     extern GraphicsPSO defaultWirePSO;
     extern GraphicsPSO stencilMaskPSO;
 
+    void InitCommonStates(ComPtr<ID3D11Device> &device);
     void InitSamplers(ComPtr<ID3D11Device> &device);
     void InitRasterizerStates(ComPtr<ID3D11Device> &device);
     void InitBlendStates(ComPtr<ID3D11Device> &device);

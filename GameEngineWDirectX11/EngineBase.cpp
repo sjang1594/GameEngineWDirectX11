@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "EngineBase.h"
+#include "GraphicsCommon.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam,
                                                              LPARAM lParam);
@@ -283,66 +284,12 @@ bool EngineBase::InitD3D() {
         return false;
     }
 
-    // Create Rasterizer State
-    D3D11_RASTERIZER_DESC rastDesc;
-    ZeroMemory(&rastDesc, sizeof(D3D11_RASTERIZER_DESC)); // Need this
-    rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
-    rastDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
-    rastDesc.FrontCounterClockwise = false;
-    rastDesc.DepthClipEnable = true;
+    Graphics::InitCommonStates(m_d3dDevice);
 
     CreateBuffers();
 
-    // Depth stencil buffer and view
-    D3D11_TEXTURE2D_DESC depthStencilBufferDesc = {};
-    depthStencilBufferDesc.Width = m_screenWidth;
-    depthStencilBufferDesc.Height = m_screenHeight;
-    depthStencilBufferDesc.MipLevels = 1;
-    depthStencilBufferDesc.ArraySize = 1;
-    depthStencilBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    depthStencilBufferDesc.SampleDesc.Count = sd.SampleDesc.Count;
-    depthStencilBufferDesc.SampleDesc.Quality = sd.SampleDesc.Quality;
-    depthStencilBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-    depthStencilBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+    SetMainViewport();
 
-    hr = m_d3dDevice->CreateTexture2D(&depthStencilBufferDesc, nullptr,
-                                      m_d3dDepthStencilBuffer.GetAddressOf());
-    if (FAILED(hr)) {
-        PrintErrorMessage(hr, "Failed to create Depth Stencil Buffer");
-        return false;
-    }
-
-    hr = m_d3dDevice->CreateDepthStencilView(m_d3dDepthStencilBuffer.Get(), nullptr,
-                                             &m_d3dDepthStencilView);
-    if (FAILED(hr)) {
-        PrintErrorMessage(hr, "Failed to create Depth Stencil View");
-        return false;
-    }
-
-    // Create depth stencil state
-    D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
-    ZeroMemory(&depthStencilDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
-    depthStencilDesc.DepthEnable = true; // false
-    depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK::D3D11_DEPTH_WRITE_MASK_ALL;
-    depthStencilDesc.DepthFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_LESS_EQUAL;
-
-    hr = m_d3dDevice->CreateDepthStencilState(&depthStencilDesc,
-                                              m_d3dDepthStencilState.GetAddressOf());
-    if (FAILED(hr)) {
-        PrintErrorMessage(hr, "Failed to create Depth Stencil State");
-        return false;
-    }
-
-    ZeroMemory(&m_screenViewport, sizeof(D3D11_VIEWPORT));
-    m_screenViewport.TopLeftX = 0;
-    m_screenViewport.TopLeftY = 0;
-    m_screenViewport.Width = float(m_screenWidth);
-    m_screenViewport.Height = float(m_screenHeight);
-    // m_screenViewport.Width = static_cast<float>(m_screenHeight);
-    m_screenViewport.MinDepth = 0.0f;
-    m_screenViewport.MaxDepth = 1.0f; // Note: important for depth buffering
-
-    m_d3dContext->RSSetViewports(1, &m_screenViewport);
     return true;
 }
 
