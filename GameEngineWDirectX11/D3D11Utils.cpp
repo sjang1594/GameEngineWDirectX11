@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "D3D11Utils.h"
-#include <directxtk/DDSTextureLoader.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -9,6 +8,7 @@
 
 namespace Luna {
 
+/* SHADER DEBUG */ 
 void CheckResult(HRESULT hr, ID3DBlob *errorBlob) {
     if (FAILED(hr)) {
         if ((hr & D3D11_ERROR_FILE_NOT_FOUND) != 0) {
@@ -133,6 +133,21 @@ void D3D11Utils::CreateIndexBuffer(ComPtr<ID3D11Device> &device, const vector<ui
     indexBufferData.SysMemSlicePitch = 0;
 
     device->CreateBuffer(&bufferDesc, &indexBufferData, indexBuffer.GetAddressOf());
+}
+
+void D3D11Utils::CreateDDSTexture(ComPtr<ID3D11Device> &device, const wchar_t *fileName,
+                                  const bool isCubeMap, ComPtr<ID3D11ShaderResourceView> &srv) {
+    ComPtr<ID3D11Texture2D> texture2D;
+
+    UINT miscFlags = 0;
+    if (isCubeMap) {
+        miscFlags |= D3D11_RESOURCE_MISC_TEXTURECUBE;
+    }
+
+    ThrowIfFailed(DirectX::CreateDDSTextureFromFileEx(
+        device.Get(), fileName, 0, D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, miscFlags,
+        DirectX::DDS_LOADER_FLAGS(false), (ID3D11Resource **)texture2D.GetAddressOf(),
+        srv.GetAddressOf(), NULL));
 }
 
 } // namespace Luna

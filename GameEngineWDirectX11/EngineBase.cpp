@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "EngineBase.h"
 #include "GraphicsCommon.h"
+#include "D3D11Utils.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam,
                                                              LPARAM lParam);
@@ -143,6 +144,21 @@ LRESULT EngineBase::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     }
 
     return ::DefWindowProc(hwnd, msg, wParam, lParam);
+}
+
+void EngineBase::InitCubeMaps(wstring basePath, wstring envFileName, wstring specularFileName,
+                              wstring irridianceFileName, wstring brdfFileName) {
+
+    const std::wstring envFilePathStr = basePath + envFileName;
+    const std::wstring sepcularFilePathStr = basePath + specularFileName;
+    const std::wstring irridianceFilePathStr = basePath + irridianceFileName;
+    const std::wstring brdfFilePath = basePath + brdfFileName;
+    
+    D3D11Utils::CreateDDSTexture(m_d3dDevice, envFilePathStr.c_str(), true, m_environmentSRV);
+    D3D11Utils::CreateDDSTexture(m_d3dDevice, sepcularFilePathStr.c_str(), true, m_specularSRV);
+    D3D11Utils::CreateDDSTexture(m_d3dDevice, irridianceFilePathStr.c_str(), true,
+                                 m_irriadianceSRV);
+    D3D11Utils::CreateDDSTexture(m_d3dDevice, brdfFilePath.c_str(), true, m_brdfSRV);
 }
 
 void EngineBase::SetGlobalConstants(ComPtr<ID3D11Buffer> &buffer) {

@@ -57,4 +57,11 @@ cbuffer GlobalConstants : register(b1) {
     Light lights[MAX_LIGHTS];
 };
 
+float random(float3 seed, int i)
+{
+    float4 seed4 = float4(seed, i);
+    float dotP = dot(seed4, float4(12.9898, 78.233, 45.164, 94.673));
+    return frac(sin(dotP) * 43758.5453);
+}
+
 #endif // __COMMON_HLSLI__

@@ -1,5 +1,6 @@
 #pragma once
 #include "Vertex.h"
+#include <wrl.h>
 #include <d3d11.h>
 
 namespace Luna {
@@ -30,6 +31,5 @@ struct Mesh {
     UINT vertexCount = 0;
     UINT stride = 0;
     UINT offset = 0;
-
 };
 } // namespace Luna

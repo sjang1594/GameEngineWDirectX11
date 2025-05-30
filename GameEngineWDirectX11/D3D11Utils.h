@@ -75,7 +75,7 @@ class D3D11Utils {
                                    ComPtr<ID3D11ShaderResourceView> &srv) {}
 
     static void CreateDDSTexture(ComPtr<ID3D11Device> &device, const wchar_t *fileName,
-                                 const bool isCubeMap, ComPtr<ID3D11ShaderResourceView> &srv) {}
+                                 const bool isCubeMap, ComPtr<ID3D11ShaderResourceView> &srv);
 };
 
 template <typename T>

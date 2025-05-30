@@ -53,7 +53,7 @@
 #include <string>
 #include <vector>
 
-
+#include <directxtk/DDSTextureLoader.h>
 #include <DirectXMath.h>
 #include <dxgi.h>
 

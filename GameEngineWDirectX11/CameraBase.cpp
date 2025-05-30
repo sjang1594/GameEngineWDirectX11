@@ -68,5 +68,4 @@ void RunTimeCamera::Update(float dt, const InputState &input) {
 void RunTimeCamera::SetController(std::unique_ptr<ICameraController> controller) {
     m_controller = std::move(controller);
 }
-
 } // namespace Luna

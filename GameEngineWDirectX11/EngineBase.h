@@ -37,6 +37,8 @@ namespace Luna {
         virtual void Render() = 0;
         virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
         
+        void InitCubeMaps(wstring basePath, wstring envFileName, wstring specularFileName,
+                          wstring irridianceFileName, wstring brdfFileName);
         void SetGlobalConstants(ComPtr<ID3D11Buffer>& buffer);
 
       protected:
@@ -70,15 +72,25 @@ namespace Luna {
         ComPtr<ID3D11DepthStencilView>  m_d3dDepthStencilView;
         ComPtr<ID3D11DepthStencilState> m_d3dDepthStencilState;
 
-        // Resource
+        // Resource Texture
         ComPtr<ID3D11Texture2D> m_floatBuffer;
         ComPtr<ID3D11Texture2D> m_resolvedBuffer;
+       
+        // RenderTarget View
         ComPtr<ID3D11RenderTargetView> m_floatRTV;
         ComPtr<ID3D11RenderTargetView> m_resolvedRTV;
-        ComPtr<ID3D11ShaderResourceView> m_resolvedSRV;
         
+        // Shader Resource View
+        ComPtr<ID3D11ShaderResourceView> m_resolvedSRV;
+        ComPtr<ID3D11ShaderResourceView> m_environmentSRV;
+        ComPtr<ID3D11ShaderResourceView> m_specularSRV;
+        ComPtr<ID3D11ShaderResourceView> m_irriadianceSRV;
+        ComPtr<ID3D11ShaderResourceView> m_brdfSRV;
+
+        // Constant Buffers
         GlobalConstants m_globalConstsCPU;
         ComPtr<ID3D11Buffer> m_globalConstsGPU;
+
 
         InputState m_inputState;
 

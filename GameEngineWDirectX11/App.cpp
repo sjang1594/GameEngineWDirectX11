@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "App.h"
 #include "GraphicsCommon.h"
+#include "GeometryGenerator.h"
 
 namespace Luna {
 App::App() : EngineBase() {}
@@ -8,6 +9,14 @@ App::App() : EngineBase() {}
 bool App::Initialize() { 
     if (!EngineBase::Initialize())
         return false;
+
+    EngineBase::InitCubeMaps(
+        L"./Assets/Cubemaps/MorningSky_0/", 
+        L"MorningSky_0EnvHDR.dds", L"MorningSky_0SpecularHDR.dds", 
+        L"MorningSky_0DiffuseHDR.dds", L"MorningSky_0Brdf.dds");
+    
+    SetupSkyBox(40.0f);
+
     return true; 
 }
 
@@ -33,8 +42,14 @@ void App::Render() {
     m_d3dContext->OMSetRenderTargets(1, m_d3dBackBufferRTV.GetAddressOf(), NULL);
 }
 
+void App::SetupSkyBox(const float& scale) 
+{
+    MeshData skyboxMesh = GeometryGenerator::MakeCube(scale);
+
+}
+
 void App::UpdateGUI() { 
-    ImGui::Begin("InSpector"); 
+    ImGui::Begin("InSpector");
     ImGui::End();
 }
 } // namespace Luna

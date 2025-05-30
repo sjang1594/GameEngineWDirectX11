@@ -20,8 +20,11 @@ namespace Luna {
         virtual void UpdateGUI() override;
         virtual void Update(float dt) override;
         virtual void Render() override;
-        void InitializeObject() {};
+        void SetupSkyBox(const float &scale);
+        void InitializeObjects();
 
         bool _usePerspectiveProjection = true;
+
+      protected:
 	};
     }
