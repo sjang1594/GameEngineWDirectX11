@@ -2,12 +2,12 @@
 #include <directxtk/SimpleMath.h>
 #include <string>
 #include <vector>
-
 #include "MeshData.h"
 
 namespace Luna {
 using namespace DirectX;
 using DirectX::SimpleMath::Vector2;
+using DirectX::SimpleMath::Vector3;
 using DirectX::SimpleMath::Matrix;
 
 // Comments: this can be done in GPU Side as well.

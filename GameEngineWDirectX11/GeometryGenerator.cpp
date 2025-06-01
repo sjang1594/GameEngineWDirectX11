@@ -1,11 +1,39 @@
 #include "pch.h"
 #include "GeometryGenerator.h"
+#include "ModelLoader.h"
 
 namespace Luna {
-
 std::vector<MeshData> GeometryGenerator::ReadFromFile(std::string basePath, std::string fileName,
-                                                  bool revertNormals) {
-    return std::vector<MeshData>();
+                                                      bool revertNormals) {
+    ModelLoader modelLoader;
+    modelLoader.Load(basePath, fileName, revertNormals);
+    std::vector<MeshData> &meshes = modelLoader.m_meshes;
+
+    constexpr float inf = std::numeric_limits<float>::infinity();
+    Vector3 min = Vector3(inf, inf, inf);
+    Vector3 max = Vector3(-inf, -inf, -inf);
+
+    for (const auto &mesh : meshes) {
+        for (const auto &v : mesh.vertices) {
+            min = Vector3::Min(min, v.position);
+            max = Vector3::Max(max, v.position);
+        }
+    }
+
+    Vector3 center = (min + max) * 0.5f;
+    Vector3 size = max - min;
+    float maxExtent = std::max({size.x, size.y, size.z});
+
+    if (maxExtent < 0.0f) {
+        std::cerr << "Failed to read file due to size being small " << std::endl;
+    }
+
+    for (auto &mesh : meshes) {
+        for (auto &v : mesh.vertices) {
+            v.position = (v.position - center) / maxExtent;
+        }
+    }
+    return meshes;
 }
 
 MeshData GeometryGenerator::MakeSquare(const float scale, const Vector2 texScale) {

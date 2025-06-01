@@ -59,14 +59,14 @@ class D3D11Utils {
     static void CreateTexture(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext> &context,
                               const std::string filename, const bool useSRGB,
                               ComPtr<ID3D11Texture2D> &texture,
-                              ComPtr<ID3D11ShaderResourceView> &srv) {}
+                              ComPtr<ID3D11ShaderResourceView> &srv);
 
     static void CreateMetallicRoughnessTexture(ComPtr<ID3D11Device> &device,
                                                ComPtr<ID3D11DeviceContext> &context,
                                                const std::string metallicFileName,
                                                const std::string roughnessFileName,
                                                ComPtr<ID3D11Texture2D> &texture,
-                                               ComPtr<ID3D11ShaderResourceView> &srv) {}
+                                               ComPtr<ID3D11ShaderResourceView> &srv);
 
     static void CreateTextureArray(ComPtr<ID3D11Device> &device,
                                    ComPtr<ID3D11DeviceContext> &context,

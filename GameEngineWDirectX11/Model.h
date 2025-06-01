@@ -1,4 +1,7 @@
 #pragma once
+#include <vector>
+#include <memory>
+#include "Mesh.h"
 #include "ConstantBuffer.h"
 
 namespace Luna {
@@ -23,6 +26,20 @@ class Model {
 
     void RenderNormals(ComPtr<ID3D11DeviceContext> &context);
 
-    void UpdateWorldRow(const Matrix &worldRow);
+    void UpdateWorldRow(const Matrix &world);
+
+    Matrix m_world = Matrix();
+    Matrix m_worldIT = Matrix();
+
+    MeshConstants m_meshConstsCPU;
+    MaterialConstants m_materialConstsCPU;
+
+    bool m_drawNormal = false;
+
+    std::vector<std::shared_ptr<Mesh>> m_meshes;
+
+  private:
+    ComPtr<ID3D11Buffer> m_meshConstsGPU;
+    ComPtr<ID3D11Buffer> m_materialConstsGPU;
 };
 } // namespace Luna
