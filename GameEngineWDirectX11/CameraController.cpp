@@ -2,7 +2,7 @@
 #include "CameraController.h"
 
 namespace Luna {
-void FPSCameraController::UpdateCamera(CameraBase &camera, float dt, const InputState &input) {
+void CameraController::UpdateCamera(CameraBase &camera, float dt, const InputState &input) {
 	// Mouse Look
     const Vector2 mouseDelta = input.GetMouseDelta();
     Quaternion rot = camera.GetRotation();

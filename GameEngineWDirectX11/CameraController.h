@@ -17,7 +17,7 @@ class ICameraController {
                               const class InputState &input) = 0;
 };
 
-class FPSCameraController : public ICameraController {
+class CameraController : public ICameraController {
   public:
     void UpdateCamera(CameraBase &camera, float dt, const InputState &input) override;
 

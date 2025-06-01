@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "CameraBase.h"
 #include "CameraController.h"
-#include <memory>
 
 namespace Luna {
 

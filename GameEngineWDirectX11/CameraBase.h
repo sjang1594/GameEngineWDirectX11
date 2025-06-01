@@ -24,6 +24,11 @@ class CameraBase {
     Matrix GetProjectionMatrix() const;
     Matrix GetViewProjection() const;
 
+    void SetApectRatio(float aspectRatio) {
+        CameraSpec spec;
+        spec.m_aspectRatio = aspectRatio;
+    }
+
     void SetTransform(const Vector3 &position, const Quaternion &rotation);
     void LookAt(const Vector3 &target);
     void SetPosition(const Vector3 &position) { m_position = position; }
@@ -49,6 +54,7 @@ class CameraBase {
 
 class RunTimeCamera : public CameraBase {
   public:
+    explicit RunTimeCamera(const CameraSpec &spec) : CameraBase(spec) {}
     void Update(float dt, const class InputState &input);
     void SetController(std::unique_ptr<class ICameraController> controller);
 
