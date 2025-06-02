@@ -142,8 +142,8 @@ LRESULT EngineBase::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 
 void EngineBase::OnMouseMove(WPARAM btnState, int mouseX, int mouseY) {
-    float x = x * 2.0f / m_screenWidth - 1.0f;
-    float y = -y * 2.0f / m_screenHeight + 1.0f;
+    float x = mouseX * 2.0f / m_screenWidth - 1.0f;
+    float y = -mouseY * 2.0f / m_screenHeight + 1.0f;
 
     x = std::clamp(x, -1.0f, 1.0f);
     y = std::clamp(y, -1.0f, 1.0f);
@@ -247,20 +247,9 @@ bool EngineBase::InitD3D() {
     std::cout << "Direct3D 11 device created successfully with feature level: " << featureLevel
               << std::endl;
 
-    UINT maxSampleCount = 8;
-    UINT numQualityLevels = 0;
-    for (UINT sampleCount = maxSampleCount; sampleCount > 0; sampleCount /= 2) {
-        hr = m_d3dDevice->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, sampleCount,
-                                                       &numQualityLevels);
-        if (SUCCEEDED(hr) && numQualityLevels > 0) {
-            std::cout << "MSAA supported with " << sampleCount << " samples and "
-                      << numQualityLevels << " quality levels." << std::endl;
-            break;
-        }
-    }
+    m_d3dDevice->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, 4, &m_numQualityLevels);
 
-    m_numQualityLevels = numQualityLevels;
-    if (numQualityLevels == 0) {
+    if (m_numQualityLevels == 0) {
         std::cout << "MSAA not supported. Disabling MSAA." << std::endl;
     }
 
@@ -276,15 +265,23 @@ bool EngineBase::InitD3D() {
     sd.Windowed = TRUE;
     sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
     sd.Flags = m_fullscreen ? DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH : 0;
-    sd.SampleDesc.Count = (numQualityLevels > 1) ? 4 : 1;
-    sd.SampleDesc.Quality = (numQualityLevels > 1) ? (numQualityLevels - 1) : 0;
+    if (m_numQualityLevels > 0) {
+        sd.SampleDesc.Count = 4; // how many multisamples
+        sd.SampleDesc.Quality = m_numQualityLevels - 1;
+    } else {
+        sd.SampleDesc.Count = 1; // how many multisamples
+        sd.SampleDesc.Quality = 0;
+    }
 
     hr = m_dxgiFactory->CreateSwapChain(m_d3dDevice.Get(), &sd, &m_d3dSwapChain);
     if (FAILED(hr)) {
         PrintErrorMessage(hr, "Failed to create Swap Chain");
         return false;
     }
-
+    
+    CreateRenderTargetView();
+    SetViewport();
+    
     // Create Rasterizer State
     D3D11_RASTERIZER_DESC rastDesc;
     ZeroMemory(&rastDesc, sizeof(D3D11_RASTERIZER_DESC)); // Need this
@@ -299,47 +296,15 @@ bool EngineBase::InitD3D() {
         return false;
     }
 
-    // Render target view
-    ComPtr<ID3D11Texture2D> backBuffer;
-    hr = m_d3dSwapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
+
+    hr = m_d3dDevice->CreateRasterizerState(&rastDesc, &m_d3dRasterizerState);
     if (FAILED(hr)) {
-        PrintErrorMessage(hr, "Failed to get the backBuffer");
+        PrintErrorMessage(hr, "Failed to create Rasterizer State");
         return false;
     }
 
-    hr = m_d3dDevice->CreateRenderTargetView(backBuffer.Get(), nullptr, &m_d3dRenderTargetView);
-    if (FAILED(hr)) {
-        PrintErrorMessage(hr, "Failed to create Render Target View");
-        return false;
-    }
-
-    // Depth stencil buffer and view
-    D3D11_TEXTURE2D_DESC depthStencilBufferDesc = {};
-    depthStencilBufferDesc.Width = m_screenWidth;
-    depthStencilBufferDesc.Height = m_screenHeight;
-    depthStencilBufferDesc.MipLevels = 1;
-    depthStencilBufferDesc.ArraySize = 1;
-    depthStencilBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    depthStencilBufferDesc.SampleDesc.Count = sd.SampleDesc.Count;
-    depthStencilBufferDesc.SampleDesc.Quality = sd.SampleDesc.Quality;
-    depthStencilBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-    depthStencilBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-    depthStencilBufferDesc.CPUAccessFlags = 0;
-    depthStencilBufferDesc.MiscFlags = 0;
-
-    hr = m_d3dDevice->CreateTexture2D(&depthStencilBufferDesc, nullptr,
-                                      m_d3dDepthStencilBuffer.GetAddressOf());
-    if (FAILED(hr)) {
-        PrintErrorMessage(hr, "Failed to create Depth Stencil Buffer");
-        return false;
-    }
-
-    hr = m_d3dDevice->CreateDepthStencilView(m_d3dDepthStencilBuffer.Get(), nullptr,
-                                             &m_d3dDepthStencilView);
-    if (FAILED(hr)) {
-        PrintErrorMessage(hr, "Failed to create Depth Stencil View");
-        return false;
-    }
+    D3D11Utils::CreateDepthBuffer(m_d3dDevice, m_screenWidth, m_screenHeight, m_numQualityLevels,
+                                  m_d3dDepthStencilView);
 
     // Create depth stencil state
     D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
@@ -355,15 +320,6 @@ bool EngineBase::InitD3D() {
         return false;
     }
 
-    ZeroMemory(&m_screenViewport, sizeof(D3D11_VIEWPORT));
-    m_screenViewport.TopLeftX = 0;
-    m_screenViewport.TopLeftY = 0;
-    m_screenViewport.Width = float(m_screenWidth);
-    m_screenViewport.Height = float(m_screenHeight);
-    m_screenViewport.MinDepth = 0.0f;
-    m_screenViewport.MaxDepth = 1.0f; // Note: important for depth buffering
-
-    m_d3dContext->RSSetViewports(1, &m_screenViewport);
     return true;
 }
 

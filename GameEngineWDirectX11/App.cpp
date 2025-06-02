@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "App.h"
-#include "GraphicsCommon.h"
 #include "GeometryGenerator.h"
-#include "Model.h"
 
 namespace Luna {
 App::App() : EngineBase() {}
@@ -11,76 +9,71 @@ bool App::Initialize() {
     if (!EngineBase::Initialize())
         return false;
 
-    EngineBase::InitCubeMaps(
-        L"../Assets/Cubemaps/MorningSky_0/", 
-        L"MorningSky_0EnvHDR.dds", L"MorningSky_0SpecularHDR.dds", 
-        L"MorningSky_0DiffuseHDR.dds", L"MorningSky_0Brdf.dds");
-    
-    // Environment Setup
-    SetupSkyBox(40.0f);
+    m_cubeMapping.Initialize(m_d3dDevice, 
+                             L"../Assets/Cubemaps/skybox/cubemap_bgra.dds",
+                             L"../Assets/Cubemaps/skybox/cubemap_diffuse.dds",
+                             L"../Assets/Cubemaps/skybox/cubemap_specular.dds");
 
-    InitializeObjects();
+    MeshData ground = GeometryGenerator::MakeSquare(3.0f);
+    ground.textureFilename = "../Assets/Texture/grass-texture-background.jpg";
+    m_groundModel.Initialize(m_d3dDevice, std::vector<MeshData>{ground});
+    m_groundModel.m_diffuseResView = m_cubeMapping.m_diffuseResView;
+    m_groundModel.m_specularResView = m_cubeMapping.m_specularResView;
 
+    Matrix modelMat = Matrix::CreateRotationX(DirectX::XM_PIDIV2);
+    Matrix inverseTranspose = modelMat;
+    inverseTranspose.Translation(Vector3(0.0f));
+    inverseTranspose = inverseTranspose.Invert().Transpose();
+
+    m_groundModel.m_basicVertexConstantData.model = modelMat.Transpose();
+    m_groundModel.m_basicVertexConstantData.invTranspose = inverseTranspose.Transpose();
+    m_groundModel.m_basicPixelConstantData.useTexture = true;
+    m_groundModel.m_basicPixelConstantData.material.diffuse = Vector3(1.0f);
+    m_groundModel.UpdateConstantBuffers(m_d3dDevice, m_d3dContext);
     return true; 
 }
 
-void App::Update(float dt) { 
-    Matrix view = m_globalCamera->GetViewRow();
-    Matrix proj = m_globalCamera->GetProjRow();
-    Vector3 eyePosition = m_globalCamera->GetEyePos();
+void App::Update(float dt) {
+    if (!m_camera)
+        return;
 
-    EngineBase::UpdateGlobalConstants(eyePosition, view, proj);
+    if (m_keyPressed[87])
+        m_camera->MoveForward(dt);
+    if (m_keyPressed[83])
+        m_camera->MoveForward(dt);
+    if (m_keyPressed[68])
+        m_camera->MoveRight(dt);
+    if (m_keyPressed[65])
+        m_camera->MoveRight(-dt);
+
+    Matrix view = m_camera->GetViewRow();
+    Matrix proj = m_camera->GetProjRow();
+    Vector3 eyeWorld = m_camera->GetEyePos();
+
+    m_cubeMapping.UpdateConstantBuffers(m_d3dDevice, m_d3dContext, view.Transpose(),
+                                         proj.Transpose());
+    m_groundModel.m_basicPixelConstantData.useTexture = true;
+    m_groundModel.m_basicPixelConstantData.eyeWorld = eyeWorld;
+    m_groundModel.m_basicVertexConstantData.view = view.Transpose();
+    m_groundModel.m_basicVertexConstantData.projection = proj.Transpose();
+    m_groundModel.UpdateConstantBuffers(m_d3dDevice, m_d3dContext);
 }
 
-void App::Render() { 
-    EngineBase::SetMainViewport();
-    m_d3dContext->VSSetSamplers(0, UINT(Graphics::sampleStates.size()),
-                                Graphics::sampleStates.data());
-    m_d3dContext->PSSetSamplers(0, UINT(Graphics::sampleStates.size()),
-                                Graphics::sampleStates.data());
+void App::Render() {
+    // READY
+    SetViewport();
+   
+    float clearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+    m_d3dContext->ClearRenderTargetView(m_d3dRenderTargetView.Get(), clearColor);
+    m_d3dContext->ClearDepthStencilView(m_d3dDepthStencilView.Get(),
+                                        D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+    m_d3dContext->OMSetRenderTargets(1, m_d3dRenderTargetView.GetAddressOf(),
+                                     m_d3dDepthStencilView.Get());
+    m_d3dContext->RSSetState(m_d3dRasterizerState.Get());
+    m_groundModel.Render(m_d3dContext);
+    m_cubeMapping.Render(m_d3dContext);
 
-    vector<ID3D11ShaderResourceView *> commonSRVs = {m_environmentSRV.Get(), m_specularSRV.Get(),
-                                                     m_irriadianceSRV.Get(), m_brdfSRV.Get()};
-    m_d3dContext->PSSetShaderResources(10, UINT(commonSRVs.size()), commonSRVs.data());
-    
-    const float clearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-    vector<ID3D11RenderTargetView *> rtvs = {m_floatRTV.Get()};   
-    EngineBase::SetGlobalConstants(m_globalConstsGPU);
-    m_skybox->Render(m_d3dContext);
-
-    m_d3dContext->ResolveSubresource(m_resolvedBuffer.Get(), 0, m_floatBuffer.Get(), 0,
-                                  DXGI_FORMAT_R16G16B16A16_FLOAT);
-    // Skybox
-    m_skybox->Render(m_d3dContext);
-
-    for (size_t i = 0; i < rtvs.size(); i++) {
-        m_d3dContext->ClearRenderTargetView(rtvs[i], clearColor);
-    }
-    EngineBase::SetPipelineState(m_drawAsWire ? Graphics::defaultWirePSO
-                                              : Graphics::defaultSolidPSO);
-    EngineBase::SetPipelineState(m_drawAsWire ? Graphics::skyboxWirePSO : Graphics::skyboxSolidPSO);
-
-    m_skybox->Render(m_d3dContext);
-    m_d3dContext->ResolveSubresource(m_resolvedBuffer.Get(), 0, m_floatBuffer.Get(), 0,
-                                  DXGI_FORMAT_R16G16B16A16_FLOAT);
-
-   m_d3dContext->OMSetRenderTargets(1, m_floatRTV.GetAddressOf(), NULL);
 }
 
-void App::SetupSkyBox(const float& scale) 
-{
-    MeshData skyboxMesh = GeometryGenerator::MakeSphere(scale, 10, 10);
-    std::reverse(skyboxMesh.indices.begin(), skyboxMesh.indices.end());
-    m_skybox = std::make_shared<Model>(m_d3dDevice, m_d3dContext, vector{skyboxMesh});
-}
-
-void App::InitializeObjects() { 
-    Vector3 center(0.0f, 0.5f, 1.0f);
-    
-}
-
-void App::UpdateGUI() { 
-    ImGui::Begin("InSpector");
-    ImGui::End();
-}
+void App::UpdateGUI() {}
 } // namespace Luna

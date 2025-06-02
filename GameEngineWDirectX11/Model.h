@@ -1,2 +1,52 @@
 #pragma once
-class Model {};
+
+#include "ConstantBuffer.h"
+#include "Mesh.h"
+#include "MeshData.h"
+#include "GeometryGenerator.h"
+#include "D3DUtils.h"
+
+namespace Luna {
+using namespace std;
+class Model {
+  public:
+    void Initialize(ComPtr<ID3D11Device> &device, const std::string &basePath,
+                    const std::string &filename);
+
+    void Initialize(ComPtr<ID3D11Device> &device, const std::vector<MeshData> &meshes);
+
+    void UpdateConstantBuffers(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext> &context);
+
+    void Render(ComPtr<ID3D11DeviceContext> &context);
+
+  public:
+    BasicVertexConstantData m_basicVertexConstantData;
+    BasicPixelConstantData m_basicPixelConstantData;
+
+    ComPtr<ID3D11ShaderResourceView> m_diffuseResView;
+    ComPtr<ID3D11ShaderResourceView> m_specularResView;
+
+    NormalVertexConstantData m_normalVertexConstantData;
+    
+  private:
+    std::vector<shared_ptr<Mesh>> m_meshes;
+
+    ComPtr<ID3D11VertexShader> m_basicVertexShader;
+    ComPtr<ID3D11PixelShader> m_basicPixelShader;
+    ComPtr<ID3D11InputLayout> m_basicInputLayout;
+
+    ComPtr<ID3D11SamplerState> m_samplerState;
+
+    ComPtr<ID3D11Buffer> m_vertexConstantBuffer;
+    ComPtr<ID3D11Buffer> m_pixelConstantBuffer;
+
+    ComPtr<ID3D11VertexShader> m_normalVertexShader;
+    ComPtr<ID3D11PixelShader> m_normalPixelShader;
+
+    shared_ptr<Mesh> m_normalLines;
+
+    ComPtr<ID3D11Buffer> m_normalVertexConstantBuffer;
+    ComPtr<ID3D11Buffer> m_normalPixelConstantBuffer;
+};
+
+} // namespace Luna

@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <windows.h>
-
+#include "Camera.h"
 namespace Luna {
 	using Microsoft::WRL::ComPtr;
 	using std::vector;
@@ -36,7 +36,7 @@ namespace Luna {
         bool CreateRenderTargetView();
 
       public:
-        int m_guiWidth = 0;
+        int                              m_guiWidth = 0;
         HWND                             m_mainWindow;
         int                              m_screenWidth;
         int                              m_screenHeight;
@@ -62,6 +62,6 @@ namespace Luna {
             false,
         };
 
-        std::shared_ptr<class Camera> m_camera;
+        std::shared_ptr<Camera> m_camera;
 	};
 }

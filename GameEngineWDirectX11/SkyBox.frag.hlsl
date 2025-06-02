@@ -1,30 +1,13 @@
-#include "Common.hlsli"
+TextureCube g_textureCube0 : register(t0);
+SamplerState g_sampler : register(s0);
 
-struct SkyboxPixelShaderInput
+struct CubeMappingPixelShaderInput
 {
     float4 posProj : SV_POSITION;
     float3 posModel : POSITION;
 };
 
-struct PixelShaderOutput
+float4 main(CubeMappingPixelShaderInput input) : SV_TARGET
 {
-    float4 pixelColor : SV_Target0;
-};
-
-PixelShaderOutput main(SkyboxPixelShaderInput input)
-{
-    PixelShaderOutput output;
-    
-    if (textureToDraw == 0)
-        output.pixelColor = envIBLTex.SampleLevel(linearWrapSampler, input.posModel.xyz, envLodBias);
-    else if (textureToDraw == 1)
-        output.pixelColor = specularIBLTex.SampleLevel(linearWrapSampler, input.posModel.xyz, envLodBias);
-    else if (textureToDraw == 2)
-        output.pixelColor = irradianceIBLTex.SampleLevel(linearWrapSampler, input.posModel.xyz, envLodBias);
-    else
-        output.pixelColor = float4(135 / 255, 206 / 255, 235 / 255, 1);
-
-    output.pixelColor *= strengthIBL;
-    
-    return output;
+    return g_textureCube0.Sample(g_sampler, input.posModel.xyz);
 }

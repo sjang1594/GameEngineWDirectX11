@@ -16,6 +16,7 @@ class Camera {
     void UpdateMouse(float mouseNdcX, float mouseNdcY);
     void MoveForward(float dt);
     void MoveRight(float dt);
+    void MoveUp(float dt) {} // jump
     void SetAspectRatio(float aspect);
 
   private:
@@ -25,9 +26,9 @@ class Camera {
     Vector3 m_rightDir = Vector3(1.0f, 0.0f, 0.0f);
 
     // roll, pitch, yaw
-    // https://en.wikipedia.org/wiki/Aircraft_principal_axes
     float m_pitch = 0.0f;
     float m_yaw = 0.0f;
+    float m_roll = 0.0f;
 
     float m_speed = 1.0f; // 움직이는 속도
 

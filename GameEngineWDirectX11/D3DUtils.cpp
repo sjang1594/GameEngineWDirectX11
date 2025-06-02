@@ -126,7 +126,7 @@ void D3D11Utils::CreateTexture(ComPtr<ID3D11Device> &device, const std::string f
 
     unsigned char *img = stbi_load(filename.c_str(), &width, &height, &channels, 0);
 
-    assert(channels == 4);
+    // assert(channels == 4);
 
     std::vector<uint8_t> image;
     image.resize(width * height * 4);
@@ -163,12 +163,14 @@ void D3D11Utils::CreateCubemapTexture(ComPtr<ID3D11Device> &device, const wchar_
 
     // https://github.com/microsoft/DirectXTK/wiki/DDSTextureLoader
     auto hr = CreateDDSTextureFromFileEx(
-        device.Get(), filename, 0, D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0,
+        device.Get(), filename, 0, D3D11_USAGE_DEFAULT, 
+        D3D11_BIND_SHADER_RESOURCE, 0, 
         D3D11_RESOURCE_MISC_TEXTURECUBE,
         DDS_LOADER_FLAGS(false), (ID3D11Resource **)texture.GetAddressOf(),
         textureResourceView.GetAddressOf(), nullptr);
 
     if (FAILED(hr)) {
+        std::wcout << L"filename: " << filename << std::endl;
         std::cout << "CreateDDSTextureFromFileEx() failed" << std::endl;
     }
 }
