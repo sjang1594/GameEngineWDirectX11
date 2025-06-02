@@ -104,15 +104,11 @@ LRESULT EngineBase::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             m_guiWidth = 0;
 
             m_d3dRenderTargetView.Reset();
-            m_d3dSwapChain->ResizeBuffers(0,                
-                                       (UINT)LOWORD(lParam),
-                                       (UINT)HIWORD(lParam),
-                                       DXGI_FORMAT_UNKNOWN,
-                                       0);
+            m_d3dSwapChain->ResizeBuffers(0, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam),
+                                          DXGI_FORMAT_UNKNOWN, 0);
             CreateRenderTargetView();
             D3D11Utils::CreateDepthBuffer(m_d3dDevice, m_screenWidth, m_screenHeight,
-                                          m_numQualityLevels,
-                                          m_d3dDepthStencilView);
+                                          m_numQualityLevels, m_d3dDepthStencilView);
             SetViewport();
 
             // 화면 해상도가 바뀌면 카메라의 aspect ratio도 변경
@@ -130,8 +126,14 @@ LRESULT EngineBase::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         break;
     case WM_RBUTTONUP:
         break;
+    case WM_KEYUP:
+        m_keyPressed[wParam] = false;
+        break;
     case WM_KEYDOWN:
         m_keyPressed[wParam] = true;
+        if (wParam == 27) {
+            DestroyWindow(hwnd);
+        }
         break;
     case WM_DESTROY:
         ::PostQuitMessage(0);
@@ -295,7 +297,6 @@ bool EngineBase::InitD3D() {
         PrintErrorMessage(hr, "Failed to create Rasterizer State");
         return false;
     }
-
 
     hr = m_d3dDevice->CreateRasterizerState(&rastDesc, &m_d3dRasterizerState);
     if (FAILED(hr)) {
