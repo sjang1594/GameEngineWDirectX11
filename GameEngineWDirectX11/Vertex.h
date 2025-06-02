@@ -7,8 +7,8 @@ using DirectX::SimpleMath::Vector3;
 
 struct Vertex {
     Vector3 position;
-    Vector3 normalModel;
+    Vector3 normal;
     Vector2 texcoord;
-    Vector3 tangentModel;
 };
+
 } // namespace Luna
