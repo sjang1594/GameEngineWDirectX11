@@ -184,34 +184,32 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="App.h" />
-    <ClInclude Include="CameraBase.h" />
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="ConstantBuffer.h" />
-    <ClInclude Include="D3D11Utils.h" />
+    <ClInclude Include="CubeMapping.h" />
+    <ClInclude Include="D3DUtils.h" />
     <ClInclude Include="EngineBase.h" />
-    <ClInclude Include="CameraController.h" />
-    <ClInclude Include="GraphicsCommon.h" />
-    <ClInclude Include="GraphicsPSO.h" />
-    <ClInclude Include="InputSystem.h" />
+    <ClInclude Include="GeometryGenerator.h" />
+    <ClInclude Include="Light.h" />
+    <ClInclude Include="Material.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="MeshData.h" />
-    <ClInclude Include="GeometryGenerator.h" />
     <ClInclude Include="Model.h" />
+    <ClInclude Include="ModelLoader.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Vertex.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="App.cpp" />
-    <ClCompile Include="CameraBase.cpp" />
+    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="ConstantBuffer.cpp" />
-    <ClCompile Include="D3D11Utils.cpp" />
+    <ClCompile Include="CubeMapping.cpp" />
+    <ClCompile Include="D3DUtils.cpp" />
     <ClCompile Include="EngineBase.cpp" />
-    <ClCompile Include="CameraController.cpp" />
-    <ClCompile Include="GraphicsCommon.cpp" />
-    <ClCompile Include="GraphicsPSO.cpp" />
-    <ClCompile Include="InputSystem.cpp" />
-    <ClCompile Include="main.cpp" />
     <ClCompile Include="GeometryGenerator.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="Model.cpp" />
+    <ClCompile Include="ModelLoader.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -231,18 +229,21 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\.clang-format" />
-    <None Include="..\README.md" />
-    <None Include="Common.hlsli">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-    </None>
+    <None Include="Common.hlsli" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="BasePass.frag.hlsl">
+    <FxCompile Include="Base.frag.hlsl">
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
     </FxCompile>
-    <FxCompile Include="BasePass.vert.hlsl">
+    <FxCompile Include="Base.vert.hlsl">
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="SkyBox.frag.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="SkyBox.vert.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
     </FxCompile>
   </ItemGroup>

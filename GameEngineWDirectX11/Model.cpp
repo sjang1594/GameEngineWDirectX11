@@ -1,136 +1,92 @@
 #include "pch.h"
-#include "GeometryGenerator.h"
 #include "Model.h"
-#include "D3D11Utils.h"
 
 namespace Luna {
-Model::Model(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext> &context,
-             const std::string &basePath, const std::string &filename) {
-    Initialize(device, context, basePath, filename);
+void Model::Initialize(ComPtr<ID3D11Device> &device, const std::string &basePath,
+                       const std::string &filename) {
+
+    auto meshes = GeometryGenerator::ReadFromFile(basePath, filename);
+    Initialize(device, meshes);
 }
 
-Model::Model(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext> &context,
-             const std::vector<class MeshData> &meshes) {
-    Initialize(device, context, meshes);
-}
+void Model::Initialize(ComPtr<ID3D11Device> &device, const std::vector<MeshData> &meshes) {
+    D3D11_SAMPLER_DESC sampDesc;
+    ZeroMemory(&sampDesc, sizeof(sampDesc));
+    sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+    sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+    sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+    sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    sampDesc.MinLOD = 0;
+    sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+    device->CreateSamplerState(&sampDesc, m_samplerState.GetAddressOf());
 
-void Model::Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext> &context,
-                       const std::string &basePath, const std::string &filename) {
-    std::vector<MeshData> meshes = GeometryGenerator::ReadFromFile(basePath, filename);
-    Initialize(device, context, meshes);
-}
+    m_basicVertexConstantData.model = Matrix();
+    m_basicVertexConstantData.view = Matrix();
+    m_basicVertexConstantData.projection = Matrix();
 
-void Model::Initialize(ComPtr<ID3D11Device> &device, 
-                       ComPtr<ID3D11DeviceContext> &context,
-                       const std::vector<MeshData> &meshes) {
-    m_meshConstsCPU.world = Matrix();
-    
-    D3D11Utils::CreateConstantBuffer(device, m_meshConstsCPU, m_meshConstsGPU);
-    D3D11Utils::CreateConstantBuffer(device, m_materialConstsCPU, m_materialConstsGPU);
+    D3D11Utils::CreateConstantBuffer(device, m_basicVertexConstantData, m_vertexConstantBuffer);
+    D3D11Utils::CreateConstantBuffer(device, m_basicPixelConstantData, m_pixelConstantBuffer);
 
     for (const auto &meshData : meshes) {
-        std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
-        D3D11Utils::CreateVertexBuffer(device, meshData.vertices, mesh->vertexBuffer);
-        mesh->vertexCount = UINT(meshData.vertices.size());
-        mesh->indexCount = UINT(meshData.indices.size());
-        D3D11Utils::CreateIndexBuffer(device, meshData.indices, mesh->indexBuffer);
+        auto newMesh = std::make_shared<Mesh>();
+        D3D11Utils::CreateVertexBuffer(device, meshData.vertices, newMesh->vertexBuffer);
+        newMesh->m_indexCount = UINT(meshData.indices.size());
+        D3D11Utils::CreateIndexBuffer(device, meshData.indices, newMesh->indexBuffer);
 
-        if (!meshData.albedoTextureFilename.empty()) {
-            D3D11Utils::CreateTexture(device, context, meshData.albedoTextureFilename, true,
-                                      mesh->albedoTexture, mesh->albedoSRV);
-            m_materialConstsCPU.useAlbedoMap = true;
+        if (!meshData.textureFilename.empty()) {
+
+            std::cout << meshData.textureFilename << std::endl;
+            D3D11Utils::CreateTexture(device, meshData.textureFilename, newMesh->texture,
+                                      newMesh->textureResourceView);
         }
 
-        if (!meshData.emissiveTextureFilename.empty()) {
-            D3D11Utils::CreateTexture(device, context, meshData.emissiveTextureFilename, true,
-                                      mesh->emissiveTexture, mesh->emissiveSRV);
-            m_materialConstsCPU.useEmissiveMap = true;
-        }
+        newMesh->vertexConstantBuffer = m_vertexConstantBuffer;
+        newMesh->pixelConstantBuffer = m_pixelConstantBuffer;
 
-        if (!meshData.normalTextureFilename.empty()) {
-            D3D11Utils::CreateTexture(device, context, meshData.normalTextureFilename, false,
-                                      mesh->normalTexture, mesh->normalSRV);
-            m_materialConstsCPU.useNormalMap = true;
-        }
-
-        if (!meshData.heightTextureFilename.empty()) {
-            D3D11Utils::CreateTexture(device, context, meshData.heightTextureFilename, false,
-                                      mesh->heightTexture, mesh->heightSRV);
-            m_meshConstsCPU.useHeightMap = true;
-        }
-
-        if (!meshData.aoTextureFilename.empty()) {
-            D3D11Utils::CreateTexture(device, context, meshData.aoTextureFilename, false,
-                                      mesh->aoTexture, mesh->aoSRV);
-            m_materialConstsCPU.useAOMap = true;
-        }
-
-        if (!meshData.metallicTextureFilename.empty() ||
-            !meshData.roughnessTextureFilename.empty()) {
-            D3D11Utils::CreateMetallicRoughnessTexture(
-                device, context, meshData.metallicTextureFilename,
-                meshData.roughnessTextureFilename, mesh->metallicRoughnessTexture,
-                mesh->metallicRoughnessSRV);
-        }
-
-        if (!meshData.metallicTextureFilename.empty()) {
-            m_materialConstsCPU.useMetallicMap = true;
-        }
-
-        if (!meshData.roughnessTextureFilename.empty()) {
-            m_materialConstsCPU.useRoughnessMap = true;
-        }
-
-        mesh->vertexConstBuffer = m_meshConstsGPU;
-        mesh->pixelConstBuffer = m_materialConstsGPU;
-
-        this->m_meshes.push_back(mesh);
+        this->m_meshes.push_back(newMesh);
     }
+
+    vector<D3D11_INPUT_ELEMENT_DESC> basicInputElements = {
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 4 * 3, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 4 * 3 + 4 * 3, D3D11_INPUT_PER_VERTEX_DATA, 0},
+    };
+
+    D3D11Utils::CreateVertexShaderAndInputLayout(device, L"Base.vert.hlsl", basicInputElements,
+                                                 m_basicVertexShader, m_basicInputLayout);
+    D3D11Utils::CreatePixelShader(device, L"Base.frag.hlsl", m_basicPixelShader);
 }
 
 void Model::UpdateConstantBuffers(ComPtr<ID3D11Device> &device,
                                   ComPtr<ID3D11DeviceContext> &context) {
-    D3D11Utils::UpdateBuffer(device, context, m_meshConstsCPU, m_meshConstsGPU);
 
-    D3D11Utils::UpdateBuffer(device, context, m_materialConstsCPU, m_materialConstsGPU);
+    D3D11Utils::UpdateBuffer(device, context, m_basicVertexConstantData, m_vertexConstantBuffer);
+
+    D3D11Utils::UpdateBuffer(device, context, m_basicPixelConstantData, m_pixelConstantBuffer);
 }
 
 void Model::Render(ComPtr<ID3D11DeviceContext> &context) {
+    context->VSSetShader(m_basicVertexShader.Get(), 0, 0);
+    context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
+    context->PSSetShader(m_basicPixelShader.Get(), 0, 0);
+
+    UINT stride = sizeof(Vertex);
+    UINT offset = 0;
     for (const auto &mesh : m_meshes) {
-        context->VSSetConstantBuffers(0, 1, mesh->vertexConstBuffer.GetAddressOf());
-        context->PSSetConstantBuffers(0, 1, mesh->pixelConstBuffer.GetAddressOf());
 
-        context->VSSetShaderResources(0, 1, mesh->heightSRV.GetAddressOf());
+        context->VSSetConstantBuffers(0, 1, mesh->vertexConstantBuffer.GetAddressOf());
+        ID3D11ShaderResourceView *resViews[3] = {mesh->textureResourceView.Get(),
+                                                 m_diffuseResView.Get(), m_specularResView.Get()};
+        context->PSSetShaderResources(0, 3, resViews);
 
-        vector<ID3D11ShaderResourceView *> resViews = {
-            mesh->albedoSRV.Get(), mesh->normalSRV.Get(), mesh->aoSRV.Get(),
-            mesh->metallicRoughnessSRV.Get(), mesh->emissiveSRV.Get()};
-        context->PSSetShaderResources(0, UINT(resViews.size()), resViews.data());
+        context->PSSetConstantBuffers(0, 1, mesh->pixelConstantBuffer.GetAddressOf());
 
-        context->IASetVertexBuffers(0, 1, mesh->vertexBuffer.GetAddressOf(), &mesh->stride,
-                                    &mesh->offset);
-
+        context->IASetInputLayout(m_basicInputLayout.Get());
+        context->IASetVertexBuffers(0, 1, mesh->vertexBuffer.GetAddressOf(), &stride, &offset);
         context->IASetIndexBuffer(mesh->indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-        context->DrawIndexed(mesh->indexCount, 0, 0);
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        context->DrawIndexed(mesh->m_indexCount, 0, 0);
     }
-}
-
-void Model::RenderNormals(ComPtr<ID3D11DeviceContext> &context) {
-    for (const auto &mesh : m_meshes) {
-        context->GSSetConstantBuffers(0, 1, m_meshConstsGPU.GetAddressOf());
-        context->IASetVertexBuffers(0, 1, mesh->vertexBuffer.GetAddressOf(), &mesh->stride,
-                                    &mesh->offset);
-        context->Draw(mesh->vertexCount, 0);
-    }
-}
-
-void Model::UpdateWorldRow(const Matrix &world) {
-    m_world = world;
-    m_worldIT = world;
-    m_worldIT.Translation(Vector3(0.0f));
-    m_worldIT = m_worldIT.Invert().Transpose();
-
-    m_meshConstsCPU.world = world.Transpose();
-    m_meshConstsCPU.worldIT = m_worldIT.Transpose();
 }
 } // namespace Luna

@@ -23,7 +23,31 @@
     <ClInclude Include="App.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ModelLoader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D3DUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="GeometryGenerator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CubeMapping.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Model.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ConstantBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Light.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Mesh.h">
@@ -33,30 +57,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MeshData.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CameraBase.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CameraController.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="InputSystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="D3D11Utils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ConstantBuffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="GraphicsPSO.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="GraphicsCommon.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Model.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -69,31 +69,25 @@
     <ClCompile Include="App.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ModelLoader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D3DUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="GeometryGenerator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vertex.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CameraBase.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CameraController.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="InputSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="D3D11Utils.cpp">
+    <ClCompile Include="CubeMapping.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ConstantBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="GraphicsPSO.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GraphicsCommon.cpp">
+    <ClCompile Include="Vertex.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Model.cpp">
@@ -115,16 +109,21 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\.clang-format" />
-    <None Include="..\README.md" />
     <None Include="Common.hlsli">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="BasePass.vert.hlsl">
+    <FxCompile Include="Base.vert.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
-    <FxCompile Include="BasePass.frag.hlsl">
+    <FxCompile Include="Base.frag.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="SkyBox.vert.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="SkyBox.frag.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
   </ItemGroup>

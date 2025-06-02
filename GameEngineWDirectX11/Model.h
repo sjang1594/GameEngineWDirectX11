@@ -1,45 +1,52 @@
 #pragma once
-#include <vector>
-#include <memory>
-#include "Mesh.h"
+
 #include "ConstantBuffer.h"
+#include "Mesh.h"
+#include "MeshData.h"
+#include "GeometryGenerator.h"
+#include "D3DUtils.h"
 
 namespace Luna {
-using Microsoft::WRL::ComPtr;
+using namespace std;
 class Model {
   public:
-    Model() = default;
-    Model(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext> &context,
-          const std::string &basePath, const std::string &filename);
-    Model(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext> &context,
-          const std::vector<class MeshData> &meshes);
+    void Initialize(ComPtr<ID3D11Device> &device, const std::string &basePath,
+                    const std::string &filename);
 
-    void Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext> &context,
-                    const std::string &basePath, const std::string &filename);
-
-    void Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext> &context,
-                    const std::vector<MeshData> &meshes);
+    void Initialize(ComPtr<ID3D11Device> &device, const std::vector<MeshData> &meshes);
 
     void UpdateConstantBuffers(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext> &context);
 
     void Render(ComPtr<ID3D11DeviceContext> &context);
 
-    void RenderNormals(ComPtr<ID3D11DeviceContext> &context);
+  public:
+    BasicVertexConstantData m_basicVertexConstantData;
+    BasicPixelConstantData m_basicPixelConstantData;
 
-    void UpdateWorldRow(const Matrix &world);
+    ComPtr<ID3D11ShaderResourceView> m_diffuseResView;
+    ComPtr<ID3D11ShaderResourceView> m_specularResView;
 
-    Matrix m_world = Matrix();
-    Matrix m_worldIT = Matrix();
-
-    MeshConstants m_meshConstsCPU;
-    MaterialConstants m_materialConstsCPU;
-
-    bool m_drawNormal = false;
-
-    std::vector<std::shared_ptr<Mesh>> m_meshes;
-
+    NormalVertexConstantData m_normalVertexConstantData;
+    
   private:
-    ComPtr<ID3D11Buffer> m_meshConstsGPU;
-    ComPtr<ID3D11Buffer> m_materialConstsGPU;
+    std::vector<shared_ptr<Mesh>> m_meshes;
+
+    ComPtr<ID3D11VertexShader> m_basicVertexShader;
+    ComPtr<ID3D11PixelShader> m_basicPixelShader;
+    ComPtr<ID3D11InputLayout> m_basicInputLayout;
+
+    ComPtr<ID3D11SamplerState> m_samplerState;
+
+    ComPtr<ID3D11Buffer> m_vertexConstantBuffer;
+    ComPtr<ID3D11Buffer> m_pixelConstantBuffer;
+
+    ComPtr<ID3D11VertexShader> m_normalVertexShader;
+    ComPtr<ID3D11PixelShader> m_normalPixelShader;
+
+    shared_ptr<Mesh> m_normalLines;
+
+    ComPtr<ID3D11Buffer> m_normalVertexConstantBuffer;
+    ComPtr<ID3D11Buffer> m_normalPixelConstantBuffer;
 };
+
 } // namespace Luna

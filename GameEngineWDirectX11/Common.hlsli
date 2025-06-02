@@ -1,67 +1,113 @@
 #ifndef __COMMON_HLSLI__
 #define __COMMON_HLSLI__
 
-#define MAX_LIGHTS 3 
-#define LIGHT_OFF 0x00
-#define LIGHT_DIRECTIONAL 0x01
-#define LIGHT_POINT 0x02
-#define LIGHT_SPOT 0x04
-#define LIGHT_SHADOW 0x10
+#define MAX_LIGHTS 3
+#define NUM_DIR_LIGHTS 1
+#define NUM_POINT_LIGHTS 1
+#define NUM_SPOT_LIGHTS 1
 
-SamplerState linearWrapSampler : register(s0);
-SamplerState linearClampSampler : register(s1);
+struct Material
+{
+    float3 ambient;
+    float shininess;
+    float3 diffuse;
+    float dummy1; // 16
+    float3 specular;
+    float dummy2;
+    float3 fresnelR0;
+    float dummy3;
+};
 
 struct Light
 {
-    float3 radiance; // Strength
+    float3 strength;
     float fallOffStart;
     float3 direction;
     float fallOffEnd;
     float3 position;
     float spotPower;
-    
-    uint type;
-    float radius;
-    float haloRadius;
-    float haloStrength;
-
-    matrix viewProj;
-    matrix invProj;
 };
+
+float3 BlinnPhong(float3 lightStrength, float3 lightVec, float3 normal,
+                   float3 toEye, Material mat)
+{
+    float3 halfway = normalize(toEye + lightVec);
+    float hdotn = dot(halfway, normal);
+    float3 specular = mat.specular * pow(max(hdotn, 0.0f), mat.shininess);
+
+    return mat.ambient + (mat.diffuse + specular) * lightStrength;
+}
+
+float3 ComputeDirectionalLight(Light L, Material mat, float3 normal, float3 toEye)
+{
+    float3 lightVec = -L.direction;
+    float ndotl = max(dot(lightVec, normal), 0.0f);
+    float3 lightStrength = L.strength * ndotl;
+    return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
+}
+
+float3 CalcAttenuation(float d, float fallOffStart, float fallOffEnd)
+{
+    return saturate((fallOffEnd - d) / (fallOffEnd - fallOffStart));
+}
+
+float3 ComputePointLight(Light L, Material mat, float3 pos, float3 normal, float3 toEye)
+{
+    float3 lightVec = L.position - pos;
+    float distance = length(lightVec);
+    if (distance > L.fallOffEnd)
+    {
+        return float3(0.0f, 0.0f, 0.0f);
+    }
+    else
+    {
+        lightVec /= distance;
+        float ndotl = max(dot(lightVec, normal), 0.0f);
+        float3 lightStrength = L.strength * ndotl;
+        float attenuationFactor = CalcAttenuation(distance, L.fallOffStart, L.fallOffEnd);
+        lightStrength *= attenuationFactor;
+        return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
+    }
+}
+
+float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3 toEye)
+{
+    float3 lightVec = L.position - pos;
+    float distance = length(lightVec);
+    
+    if (distance > L.fallOffEnd)
+    {
+        return float3(0.0f, 0.0f, 0.0f);
+    }
+    else
+    {
+        lightVec /= distance;
+        float ndotl = max(dot(lightVec, normal), 0.0f);
+        float3 lightStrength = L.strength * ndotl;
+        
+        float attenuationFactor = CalcAttenuation(distance, L.fallOffStart, L.fallOffEnd);
+        lightStrength *= attenuationFactor;
+        
+        float spotFactor = pow(max(-dot(lightVec, L.direction), 0.0f), L.spotPower);
+        lightStrength *= spotFactor;
+        return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
+    }
+}
 
 struct VertexShaderInput
 {
-    float3 posModel : POSITION;     // Model Position in Local Coordinate
-    float3 normalModel : NORMAL0;   // Model Normal 
-    float2 texcoord : TEXCOORD0;
-    float3 tangentModel : TANGENT0;
+    float3 posModel : POSITION;
+    float3 normalModel : NORMAL;    
+    float2 texcoord : TEXCOORD0;    
 };
 
 struct PixelShaderInput
 {
-    float4 posProj : SV_POSITION;   // Screen position
-    float3 posWorld : POSITION;     // World position 
-    float3 normalWorld : NORMAL0;
-    float2 texcoord : TEXCOORD0;
-    float3 tangentWorld : TANGENT0;
+    float4 posProj : SV_POSITION;
+    float3 posWorld : POSITION;
+    float3 normalWorld : NORMAL;
+    float2 texcoord : TEXCOORD;
+    float3 color : COLOR;
 };
-
-cbuffer GlobalConstants : register(b1) {
-    matrix view;
-    matrix proj;
-    matrix invProj;
-    matrix viewProj;
-    matrix invViewProj; 
-    float3 eyeWorld;
-    
-    Light lights[MAX_LIGHTS];
-};
-
-float random(float3 seed, int i)
-{
-    float4 seed4 = float4(seed, i);
-    float dotP = dot(seed4, float4(12.9898, 78.233, 45.164, 94.673));
-    return frac(sin(dotP) * 43758.5453);
-}
 
 #endif // __COMMON_HLSLI__

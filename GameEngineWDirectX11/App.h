@@ -1,17 +1,9 @@
 #pragma once
-#include <algorithm>
-#include <directxtk/SimpleMath.h>
-#include <iostream>
-#include <memory>
-#include <vector>
-#include <string>
-
 #include "EngineBase.h"
+#include "Model.h"
+#include "CubeMapping.h"
 
 namespace Luna {
-	using DirectX::SimpleMath::Matrix;
-	using DirectX::SimpleMath::Vector3;
-
 	class App : public EngineBase {
       public:
         App();
@@ -20,11 +12,10 @@ namespace Luna {
         virtual void UpdateGUI() override;
         virtual void Update(float dt) override;
         virtual void Render() override;
-        void SetupSkyBox(const float &scale);
-        void InitializeObjects();
-
-        bool _usePerspectiveProjection = true;
 
       protected:
+        Model m_groundModel;
+        CubeMapping m_cubeMapping;
+        bool m_usePerspectiveProjection = true;
 	};
     }

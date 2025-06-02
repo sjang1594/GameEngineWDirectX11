@@ -26,14 +26,8 @@
 // WinHelp is deprecated
 #define NOHELP
 
-// fix stb_image_write compiler error
-#define _CRT_SECURE_NO_WARNINGS
-
-
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#include <windowsx.h>
-#include <comdef.h>
 
 #include <wrl/client.h>
 
@@ -42,6 +36,7 @@
 #include <DirectXColors.h>
 #include <d3dcompiler.h>
 
+#include <iostream>
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -51,21 +46,26 @@
 #include <stdexcept>
 #include <tuple>
 #include <string>
-#include <vector>
+#include <filesystem>
+
+#include <dxgi.h>
+#include <imgui.h>
+#include <imgui_impl_dx11.h>
+#include <imgui_impl_win32.h>
+#include <comdef.h>
+#include <assimp\Importer.hpp>
+#include <assimp\postprocess.h>
 
 #include <directxtk/DDSTextureLoader.h>
-#include <DirectXMath.h>
-#include <dxgi.h>
 
-#include <DirectXTexEXR.h> // For EXR HDRI
-
-#include <fp16.h>
-
-inline void ThrowIfFailed(HRESULT hr)
+namespace DX
 {
-    if (FAILED(hr))
+    inline void ThrowIfFailed(HRESULT hr)
     {
-        // Set a breakpoint on this line to catch DirectX API errors
-        throw std::exception();
+        if (FAILED(hr))
+        {
+            // Set a breakpoint on this line to catch DirectX API errors
+            throw std::exception();
+        }
     }
 }

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "EngineBase.h"
-#include "GraphicsCommon.h"
-#include "D3D11Utils.h"
+#include "Camera.h"
+#include "D3DUtils.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam,
                                                              LPARAM lParam);
@@ -23,6 +23,8 @@ EngineBase::EngineBase()
       m_screenViewport(D3D11_VIEWPORT()) {
 
     g_engeinBase = this;
+    m_camera = std::make_shared<Camera>();
+    m_camera->SetAspectRatio(this->GetAspectRatio());
 }
 
 EngineBase::~EngineBase() {
@@ -35,11 +37,13 @@ EngineBase::~EngineBase() {
     DestroyWindow(m_mainWindow);
 }
 
+float EngineBase::GetAspectRatio() const {
+    return float(m_screenWidth - m_guiWidth) / m_screenHeight;
+}
+
 int EngineBase::Run() {
     MSG msg = {0};
     while (WM_QUIT != msg.message) {
-        m_inputState.ClearFrameDelta();
-
         if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
@@ -50,9 +54,9 @@ int EngineBase::Run() {
             ImGui::NewFrame();
             ImGui::Begin("Scene Control");
 
-            ImGui::Text("Average %.3f ms/frame (%.1f FPS)",
-                1000.0f / ImGui::GetIO().Framerate,
-                ImGui::GetIO().Framerate);
+            // ImGui가 측정해주는 Framerate 출력
+            ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
+                        ImGui::GetIO().Framerate);
 
             UpdateGUI();
 
@@ -64,7 +68,6 @@ int EngineBase::Run() {
             Render();
 
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-
             m_d3dSwapChain->Present(1, 0);
         }
     }
@@ -83,8 +86,8 @@ bool EngineBase::Initialize() {
     if (!InitGUI())
         return false;
 
-    // Prevent console window to cover the rendered window
     SetForegroundWindow(m_mainWindow);
+    
     return true;
 }
 
@@ -95,48 +98,40 @@ LRESULT EngineBase::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
     switch (msg) {
     case WM_SIZE:
-        if (m_d3dSwapChain){
+        if (m_d3dSwapChain) {
             m_screenWidth = int(LOWORD(lParam));
             m_screenHeight = int(HIWORD(lParam));
+            m_guiWidth = 0;
 
-            m_d3dSwapChain->ResizeBuffers(0, 
-                (UINT)LOWORD(lParam), (UINT)HIWORD(lParam), DXGI_FORMAT_UNKNOWN, 0);
+            m_d3dRenderTargetView.Reset();
+            m_d3dSwapChain->ResizeBuffers(0,                
+                                       (UINT)LOWORD(lParam),
+                                       (UINT)HIWORD(lParam),
+                                       DXGI_FORMAT_UNKNOWN,
+                                       0);
+            CreateRenderTargetView();
+            D3D11Utils::CreateDepthBuffer(m_d3dDevice, m_screenWidth, m_screenHeight,
+                                          m_numQualityLevels,
+                                          m_d3dDepthStencilView);
+            SetViewport();
 
-            CreateBuffers();
-            SetMainViewport();
+            // 화면 해상도가 바뀌면 카메라의 aspect ratio도 변경
+            m_camera->SetAspectRatio(this->GetAspectRatio());
         }
         break;
     case WM_SYSCOMMAND:
         if ((wParam & 0xfff0) == SC_KEYMENU)
             return 0;
         break;
-    case WM_MOUSEMOVE: {
-        int x = GET_X_LPARAM(lParam);
-        int y = GET_Y_LPARAM(lParam);
-        std::cout << "x: " << x << "y:" << y << std::endl;
-        m_inputState.SetMousePosition({float(x), float(y)});
-        break;
-    }
-    case WM_LBUTTONDOWN:
-        m_inputState.SetMouseButton(MouseButton::Left, true);
+    case WM_MOUSEMOVE:
+        OnMouseMove(wParam, LOWORD(lParam), HIWORD(lParam));
         break;
     case WM_LBUTTONUP:
-        m_inputState.SetMouseButton(MouseButton::Left, false);
-        break;
-    case WM_RBUTTONDOWN:
-        m_inputState.SetMouseButton(MouseButton::Right, true);
         break;
     case WM_RBUTTONUP:
-        m_inputState.SetMouseButton(MouseButton::Right, false);
         break;
     case WM_KEYDOWN:
-        if (wParam == VK_ESCAPE) {
-            DestroyWindow(hwnd);
-        }
-        m_inputState.SetKeyState(static_cast<Key>(wParam), true);
-        break;
-    case WM_KEYUP:
-        m_inputState.SetKeyState(static_cast<Key>(wParam), false);
+        m_keyPressed[wParam] = true;
         break;
     case WM_DESTROY:
         ::PostQuitMessage(0);
@@ -146,24 +141,13 @@ LRESULT EngineBase::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return ::DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-void EngineBase::InitCubeMaps(wstring basePath, wstring envFileName, wstring specularFileName,
-                              wstring irridianceFileName, wstring brdfFileName) {
+void EngineBase::OnMouseMove(WPARAM btnState, int mouseX, int mouseY) {
+    float x = mouseX * 2.0f / m_screenWidth - 1.0f;
+    float y = -mouseY * 2.0f / m_screenHeight + 1.0f;
 
-    const std::wstring envFilePathStr = basePath + envFileName;
-    const std::wstring sepcularFilePathStr = basePath + specularFileName;
-    const std::wstring irridianceFilePathStr = basePath + irridianceFileName;
-    const std::wstring brdfFilePath = basePath + brdfFileName;
-    
-    D3D11Utils::CreateDDSTexture(m_d3dDevice, envFilePathStr.c_str(), true, m_environmentSRV);
-    D3D11Utils::CreateDDSTexture(m_d3dDevice, sepcularFilePathStr.c_str(), true, m_specularSRV);
-    D3D11Utils::CreateDDSTexture(m_d3dDevice, irridianceFilePathStr.c_str(), true,
-                                 m_irriadianceSRV);
-    D3D11Utils::CreateDDSTexture(m_d3dDevice, brdfFilePath.c_str(), true, m_brdfSRV);
-}
-
-void EngineBase::SetGlobalConstants(ComPtr<ID3D11Buffer> &buffer) {
-    m_d3dContext->VSSetConstantBuffers(1, 1, buffer.GetAddressOf());
-    m_d3dContext->PSSetConstantBuffers(1, 1, buffer.GetAddressOf());
+    x = std::clamp(x, -1.0f, 1.0f);
+    y = std::clamp(y, -1.0f, 1.0f);
+    m_camera->UpdateMouse(x, y);
 }
 
 bool EngineBase::InitMainWindow() {
@@ -263,19 +247,9 @@ bool EngineBase::InitD3D() {
     std::cout << "Direct3D 11 device created successfully with feature level: " << featureLevel
               << std::endl;
 
-    UINT maxSampleCount = 8;
-    UINT numQualityLevels = 0;
-    for (UINT sampleCount = maxSampleCount; sampleCount > 0; sampleCount /= 2) {
-        hr = m_d3dDevice->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, sampleCount,
-                                                       &numQualityLevels);
-        if (SUCCEEDED(hr) && numQualityLevels > 0) {
-            std::cout << "MSAA supported with " << sampleCount << " samples and "
-                      << numQualityLevels << " quality levels." << std::endl;
-            break;
-        }
-    }
+    m_d3dDevice->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, 4, &m_numQualityLevels);
 
-    if (numQualityLevels == 0) {
+    if (m_numQualityLevels == 0) {
         std::cout << "MSAA not supported. Disabling MSAA." << std::endl;
     }
 
@@ -285,26 +259,66 @@ bool EngineBase::InitD3D() {
     sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     sd.BufferDesc.RefreshRate.Numerator = 60;
     sd.BufferDesc.RefreshRate.Denominator = 1;
-    sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    sd.BufferUsage = DXGI_USAGE_SHADER_INPUT | DXGI_USAGE_RENDER_TARGET_OUTPUT;
     sd.BufferCount = 2;
     sd.OutputWindow = m_mainWindow;
     sd.Windowed = TRUE;
     sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
     sd.Flags = m_fullscreen ? DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH : 0;
-    sd.SampleDesc.Count = (numQualityLevels > 1) ? 4 : 1;
-    sd.SampleDesc.Quality = (numQualityLevels > 1) ? (numQualityLevels - 1) : 0;
+    if (m_numQualityLevels > 0) {
+        sd.SampleDesc.Count = 4; // how many multisamples
+        sd.SampleDesc.Quality = m_numQualityLevels - 1;
+    } else {
+        sd.SampleDesc.Count = 1; // how many multisamples
+        sd.SampleDesc.Quality = 0;
+    }
 
     hr = m_dxgiFactory->CreateSwapChain(m_d3dDevice.Get(), &sd, &m_d3dSwapChain);
     if (FAILED(hr)) {
         PrintErrorMessage(hr, "Failed to create Swap Chain");
         return false;
     }
+    
+    CreateRenderTargetView();
+    SetViewport();
+    
+    // Create Rasterizer State
+    D3D11_RASTERIZER_DESC rastDesc;
+    ZeroMemory(&rastDesc, sizeof(D3D11_RASTERIZER_DESC)); // Need this
+    rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
+    rastDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
+    rastDesc.FrontCounterClockwise = false;
+    rastDesc.DepthClipEnable = true;
 
-    Graphics::InitCommonStates(m_d3dDevice);
+    hr = m_d3dDevice->CreateRasterizerState(&rastDesc, &m_d3dRasterizerState);
+    if (FAILED(hr)) {
+        PrintErrorMessage(hr, "Failed to create Rasterizer State");
+        return false;
+    }
 
-    CreateBuffers();
 
-    SetMainViewport();
+    hr = m_d3dDevice->CreateRasterizerState(&rastDesc, &m_d3dRasterizerState);
+    if (FAILED(hr)) {
+        PrintErrorMessage(hr, "Failed to create Rasterizer State");
+        return false;
+    }
+
+    D3D11Utils::CreateDepthBuffer(m_d3dDevice, m_screenWidth, m_screenHeight, m_numQualityLevels,
+                                  m_d3dDepthStencilView);
+
+    // Create depth stencil state
+    D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
+    ZeroMemory(&depthStencilDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
+    depthStencilDesc.DepthEnable = true; // false
+    depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK::D3D11_DEPTH_WRITE_MASK_ALL;
+    depthStencilDesc.DepthFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_LESS_EQUAL;
+
+    hr = m_d3dDevice->CreateDepthStencilState(&depthStencilDesc,
+                                              m_d3dDepthStencilState.GetAddressOf());
+    if (FAILED(hr)) {
+        PrintErrorMessage(hr, "Failed to create Depth Stencil State");
+        return false;
+    }
 
     return true;
 }
@@ -329,55 +343,39 @@ bool EngineBase::InitGUI() {
     return true;
 }
 
-void EngineBase::CreateBuffers() { 
-    ComPtr<ID3D11Texture2D> backBuffer;
+void EngineBase::SetViewport() {
+    static int previousGuiWidth = -1;
 
-    ThrowIfFailed(m_d3dSwapChain->GetBuffer(0, IID_PPV_ARGS(backBuffer.GetAddressOf())));
-    ThrowIfFailed(m_d3dDevice->CreateRenderTargetView(backBuffer.Get(), NULL,
-                                                      m_d3dBackBufferRTV.GetAddressOf()));
-    ThrowIfFailed(m_d3dDevice->CheckMultisampleQualityLevels(DXGI_FORMAT_R16G16B16A16_FLOAT, 4,
-                                                             &m_numQualityLevels));
-    D3D11_TEXTURE2D_DESC desc;
-    backBuffer->GetDesc(&desc);
-    desc.MipLevels = desc.ArraySize = 1;
-    desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-    desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-    desc.Usage = D3D11_USAGE_DEFAULT; // COPY From Staging Textues
-    desc.MiscFlags = 0;
-    desc.CPUAccessFlags = 0;
-    if (m_useMSAA && m_numQualityLevels) {
-        desc.SampleDesc.Count = 4;
-        desc.SampleDesc.Quality = m_numQualityLevels - 1;
-    } else {
-        desc.SampleDesc.Count = 1;
-        desc.SampleDesc.Quality = 0;
+    if (previousGuiWidth != m_guiWidth) {
+
+        previousGuiWidth = m_guiWidth;
+
+        // Set the viewport
+        ZeroMemory(&m_screenViewport, sizeof(D3D11_VIEWPORT));
+        m_screenViewport.TopLeftX = float(m_guiWidth);
+        m_screenViewport.TopLeftY = 0;
+        m_screenViewport.Width = float(m_screenWidth - m_guiWidth);
+        m_screenViewport.Height = float(m_screenHeight);
+        m_screenViewport.MinDepth = 0.0f;
+        m_screenViewport.MaxDepth = 1.0f; // Note: important for depth buffering
+
+        m_d3dContext->RSSetViewports(1, &m_screenViewport);
     }
-
-    ThrowIfFailed(m_d3dDevice->CreateTexture2D(&desc, NULL, m_floatBuffer.GetAddressOf()));
-    
-    // Float MSAA -> Resolve -> SRV / RTV
-    // disable MSAA
-    desc.SampleDesc.Count = 1; 
-    desc.SampleDesc.Quality = 0;
-    ThrowIfFailed(m_d3dDevice->CreateTexture2D(&desc, NULL, m_resolvedBuffer.GetAddressOf()));
-    ThrowIfFailed(m_d3dDevice->CreateShaderResourceView(m_resolvedBuffer.Get(), NULL,
-                                                        m_resolvedSRV.GetAddressOf()));
-    ThrowIfFailed(m_d3dDevice->CreateRenderTargetView(m_resolvedBuffer.Get(), NULL,
-                                                      m_resolvedRTV.GetAddressOf()));
-
-    // Create Depth Buffers
-
 }
 
-void EngineBase::SetMainViewport() { 
-    ZeroMemory(&m_screenViewport, sizeof(D3D11_VIEWPORT));
-    m_screenViewport.TopLeftX = 0;
-    m_screenViewport.TopLeftY = 0;
-    m_screenViewport.Width = float(m_screenWidth);
-    m_screenViewport.Height = float(m_screenHeight);
-    m_screenViewport.MinDepth = 0.0f;
-    m_screenViewport.MaxDepth = 1.0f;
-    m_d3dContext->RSSetViewports(1, &m_screenViewport);
+bool EngineBase::CreateRenderTargetView() {
+    ComPtr<ID3D11Texture2D> backBuffer;
+    m_d3dSwapChain->GetBuffer(0, IID_PPV_ARGS(backBuffer.GetAddressOf()));
+    if (backBuffer) {
+        m_d3dDevice->CreateRenderTargetView(backBuffer.Get(), nullptr,
+                                         m_d3dRenderTargetView.GetAddressOf());
+        m_d3dDevice->CreateShaderResourceView(backBuffer.Get(), nullptr,
+                                           m_d3dShareResourceView.GetAddressOf());
+    } else {
+        std::cout << "CreateRenderTargetView() failed." << std::endl;
+        return false;
+    }
+    return true;
 }
 
 } // namespace Luna

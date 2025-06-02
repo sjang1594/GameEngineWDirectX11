@@ -1,43 +1,37 @@
-#pragma once
+
 #include <directxtk/SimpleMath.h>
 
-#define MAX_LIGHT 3
-#define LIGHT_OFF 0x00
-#define LIGHT_DIRECTIONAL 0x01
-#define LIGHT_POINT 0x02
-#define LIGHT_SPOT 0x04
+#include "Light.h"
+#include "Material.h"
 
 namespace Luna {
+
 using DirectX::SimpleMath::Matrix;
-using DirectX::SimpleMath::Vector2;
 using DirectX::SimpleMath::Vector3;
 
-_declspec(align(256)) struct MeshConstants {
-    Matrix world;   // Model -> World
-    Matrix worldIT; // Inverse of above 
-};
-
-_declspec(align(256)) struct MaterialConstants {
-    Vector3 albedoFactor = Vector3(1.0f);
-    float roughnessFactor = 1.0f;
-    float metallicFactor = 1.0f;
-    Vector3 emissionFactor = Vector3(0.0f);
-};
-
-struct Light {};
-
-_declspec(align(256)) struct GlobalConstants {
-    Matrix view; 
-    
+struct BasicVertexConstantData {
+    Matrix model;
+    Matrix invTranspose;
+    Matrix view;
     Matrix projection;
-    Matrix invProjection;
+};
 
-    Matrix viewProjection;
-    Matrix inverseViewProjection;
+static_assert((sizeof(BasicVertexConstantData) % 16) == 0,
+              "Constant Buffer size must be 16-byte aligned");
 
-    Vector3 eyeWorld;
-    
-    Light lights[MAX_LIGHT];
+struct BasicPixelConstantData {
+    Vector3 eyeWorld;         // 12
+    bool useTexture;          // bool 1 + 3 padding
+    Material material;        // 48
+    Light lights[MAX_LIGHTS]; // 48 * MAX_LIGHTS
+};
+
+static_assert((sizeof(BasicPixelConstantData) % 16) == 0,
+              "Constant Buffer size must be 16-byte aligned");
+
+struct NormalVertexConstantData {
+    float scale = 0.1f;
+    float dummy[3];
 };
 
 } // namespace Luna
