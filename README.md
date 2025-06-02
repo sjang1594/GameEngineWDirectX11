@@ -12,3 +12,9 @@ It's important to figure out what to implement and the ideas are coming from the
 ### HDRI
 * [HDRI Texture Example](https://ambientcg.com/view?id=DaySkyHDRI013B)
 * [IBLBaker](https://github.com/derkreature/IBLBaker)
+
+### Feature
+* CubeMapping [o]
+* SchlicFrenel Effect [o]
+* HDRI [x]
+* GLTF Loader [x]
