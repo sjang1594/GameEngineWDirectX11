@@ -11,6 +11,11 @@
 SamplerState linearWrapSampler : register(s0);
 SamplerState linearClampSampler : register(s1);
 
+TextureCube envIBLTex : register(t10);
+TextureCube specularIBLTex : register(t11);
+TextureCube irradianceIBLTex : register(t12);
+Texture2D brdfTex : register(t13);
+
 struct Light
 {
     float3 radiance; // Strength
@@ -47,13 +52,18 @@ struct PixelShaderInput
 };
 
 cbuffer GlobalConstants : register(b1) {
-    matrix view;
-    matrix proj;
-    matrix invProj;
-    matrix viewProj;
-    matrix invViewProj; 
-    float3 eyeWorld;
+    matrix view;        // 64
+    matrix proj;        // 64
+    matrix invProj;     // 64
+    matrix viewProj;    // 64
+    matrix invViewProj; // 64
+    float3 eyeWorld;    // 12
     
+    float strengthIBL;  // 4
+    int textureToDraw = 0; // 4
+    float envLodBias = 0.0f; // 4 
+    float lodBias = 2.0f;
+    float dummy2;
     Light lights[MAX_LIGHTS];
 };
 

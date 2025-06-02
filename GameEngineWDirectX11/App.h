@@ -1,17 +1,13 @@
 #pragma once
 #include <algorithm>
 #include <directxtk/SimpleMath.h>
-#include <iostream>
 #include <memory>
-#include <vector>
-#include <string>
 
 #include "EngineBase.h"
 
 namespace Luna {
 	using DirectX::SimpleMath::Matrix;
 	using DirectX::SimpleMath::Vector3;
-
 	class App : public EngineBase {
       public:
         App();
@@ -24,7 +20,11 @@ namespace Luna {
         void InitializeObjects();
 
         bool _usePerspectiveProjection = true;
+        bool m_drawAsWire = false;
 
       protected:
+        std::shared_ptr<class Model> m_skybox;
+        std::shared_ptr<class Model> m_ground;
+        std::vector<std::shared_ptr<class Model>> m_ojbectList; 
 	};
     }

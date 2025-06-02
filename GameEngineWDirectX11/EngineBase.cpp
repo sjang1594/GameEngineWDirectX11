@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "EngineBase.h"
 #include "GraphicsCommon.h"
+#include "GraphicsPSO.h"
 #include "D3D11Utils.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam,
@@ -23,6 +24,7 @@ EngineBase::EngineBase()
       m_screenViewport(D3D11_VIEWPORT()) {
 
     g_engeinBase = this;
+    m_globalCamera->SetAspectRatio(this->GetAspectRatio());
 }
 
 EngineBase::~EngineBase() {
@@ -38,7 +40,6 @@ EngineBase::~EngineBase() {
 int EngineBase::Run() {
     MSG msg = {0};
     while (WM_QUIT != msg.message) {
-        m_inputState.ClearFrameDelta();
 
         if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
             TranslateMessage(&msg);
@@ -54,6 +55,7 @@ int EngineBase::Run() {
                 1000.0f / ImGui::GetIO().Framerate,
                 ImGui::GetIO().Framerate);
 
+            // Custom UI
             UpdateGUI();
 
             ImGui::End();
@@ -61,6 +63,7 @@ int EngineBase::Run() {
 
             Update(ImGui::GetIO().DeltaTime);
 
+            // Custom Logic
             Render();
 
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
@@ -104,6 +107,7 @@ LRESULT EngineBase::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
             CreateBuffers();
             SetMainViewport();
+
         }
         break;
     case WM_SYSCOMMAND:
@@ -113,30 +117,31 @@ LRESULT EngineBase::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     case WM_MOUSEMOVE: {
         int x = GET_X_LPARAM(lParam);
         int y = GET_Y_LPARAM(lParam);
-        std::cout << "x: " << x << "y:" << y << std::endl;
-        m_inputState.SetMousePosition({float(x), float(y)});
+        // std::cout << "x: " << x << "y:" << y << std::endl;
+        // m_inputState.SetMousePosition({float(x), float(y)});
         break;
     }
     case WM_LBUTTONDOWN:
-        m_inputState.SetMouseButton(MouseButton::Left, true);
+        // m_inputState.SetMouseButton(MouseButton::Left, true);
         break;
     case WM_LBUTTONUP:
-        m_inputState.SetMouseButton(MouseButton::Left, false);
+        
+        // m_inputState.SetMouseButton(MouseButton::Left, false);
         break;
     case WM_RBUTTONDOWN:
-        m_inputState.SetMouseButton(MouseButton::Right, true);
+        // m_inputState.SetMouseButton(MouseButton::Right, true);
         break;
     case WM_RBUTTONUP:
-        m_inputState.SetMouseButton(MouseButton::Right, false);
+        // m_inputState.SetMouseButton(MouseButton::Right, false);
         break;
     case WM_KEYDOWN:
         if (wParam == VK_ESCAPE) {
             DestroyWindow(hwnd);
         }
-        m_inputState.SetKeyState(static_cast<Key>(wParam), true);
+        // m_inputState.SetKeyState(static_cast<Key>(wParam), true);
         break;
     case WM_KEYUP:
-        m_inputState.SetKeyState(static_cast<Key>(wParam), false);
+        // m_inputState.SetKeyState(static_cast<Key>(wParam), false);
         break;
     case WM_DESTROY:
         ::PostQuitMessage(0);
@@ -164,6 +169,29 @@ void EngineBase::InitCubeMaps(wstring basePath, wstring envFileName, wstring spe
 void EngineBase::SetGlobalConstants(ComPtr<ID3D11Buffer> &buffer) {
     m_d3dContext->VSSetConstantBuffers(1, 1, buffer.GetAddressOf());
     m_d3dContext->PSSetConstantBuffers(1, 1, buffer.GetAddressOf());
+}
+
+void EngineBase::SetPipelineState(const GraphicsPSO &pso) {
+    m_d3dContext->VSSetShader(pso.m_vertexShader.Get(), 0, 0);
+    m_d3dContext->PSSetShader(pso.m_pixelShader.Get(), 0, 0);
+    m_d3dContext->HSSetShader(pso.m_hullShader.Get(), 0, 0);
+    m_d3dContext->DSSetShader(pso.m_domainShader.Get(), 0, 0);
+    m_d3dContext->GSSetShader(pso.m_geometryShader.Get(), 0, 0);
+    m_d3dContext->IASetInputLayout(pso.m_inputLayout.Get());
+    m_d3dContext->RSSetState(pso.m_rasterizerState.Get());
+    m_d3dContext->OMSetBlendState(pso.m_blendState.Get(), pso.m_blendFactor, 0xffffffff);
+    m_d3dContext->OMSetDepthStencilState(pso.m_depthStencilState.Get(), pso.m_stencilRef);
+    m_d3dContext->IASetPrimitiveTopology(pso.m_primitiveTopology);
+}
+
+void EngineBase::UpdateGlobalConstants(const Vector3 &eyeworld, const Matrix &view,
+                                       const Matrix &proj, const Matrix &refl) {
+    m_globalConstsCPU.eyeWorld = eyeworld;
+    m_globalConstsCPU.view = view.Transpose();
+    m_globalConstsCPU.projection = proj.Transpose();
+    m_globalConstsCPU.invProjection = proj.Invert().Transpose();
+    m_globalConstsCPU.viewProjection = (view * proj).Transpose();
+    D3D11Utils::UpdateBuffer(m_d3dDevice, m_d3dContext, m_globalConstsCPU, m_globalConstsGPU);
 }
 
 bool EngineBase::InitMainWindow() {
@@ -285,26 +313,29 @@ bool EngineBase::InitD3D() {
     sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     sd.BufferDesc.RefreshRate.Numerator = 60;
     sd.BufferDesc.RefreshRate.Denominator = 1;
-    sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     sd.BufferCount = 2;
+    
+    sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     sd.OutputWindow = m_mainWindow;
     sd.Windowed = TRUE;
     sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-    sd.Flags = m_fullscreen ? DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH : 0;
-    sd.SampleDesc.Count = (numQualityLevels > 1) ? 4 : 1;
-    sd.SampleDesc.Quality = (numQualityLevels > 1) ? (numQualityLevels - 1) : 0;
+    sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+    sd.SampleDesc.Count = 1;
+    sd.SampleDesc.Quality = 0;
 
     hr = m_dxgiFactory->CreateSwapChain(m_d3dDevice.Get(), &sd, &m_d3dSwapChain);
     if (FAILED(hr)) {
         PrintErrorMessage(hr, "Failed to create Swap Chain");
         return false;
     }
-
+    
     Graphics::InitCommonStates(m_d3dDevice);
 
     CreateBuffers();
 
     SetMainViewport();
+
+    D3D11Utils::CreateConstantBuffer(m_d3dDevice, m_globalConstsCPU, m_globalConstsGPU);
 
     return true;
 }
@@ -354,19 +385,24 @@ void EngineBase::CreateBuffers() {
     }
 
     ThrowIfFailed(m_d3dDevice->CreateTexture2D(&desc, NULL, m_floatBuffer.GetAddressOf()));
-    
+
+    ThrowIfFailed(
+        m_d3dDevice->CreateRenderTargetView(m_floatBuffer.Get(), NULL, m_floatRTV.GetAddressOf()));
     // Float MSAA -> Resolve -> SRV / RTV
     // disable MSAA
     desc.SampleDesc.Count = 1; 
     desc.SampleDesc.Quality = 0;
+    
+    // Texture
     ThrowIfFailed(m_d3dDevice->CreateTexture2D(&desc, NULL, m_resolvedBuffer.GetAddressOf()));
+    
+    // RenderTarget View
     ThrowIfFailed(m_d3dDevice->CreateShaderResourceView(m_resolvedBuffer.Get(), NULL,
                                                         m_resolvedSRV.GetAddressOf()));
+
+    // Shader Resource Views
     ThrowIfFailed(m_d3dDevice->CreateRenderTargetView(m_resolvedBuffer.Get(), NULL,
                                                       m_resolvedRTV.GetAddressOf()));
-
-    // Create Depth Buffers
-
 }
 
 void EngineBase::SetMainViewport() { 

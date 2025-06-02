@@ -22,15 +22,20 @@ ComPtr<ID3D11DepthStencilState> drawMaskedDSS;
 
 // Shaders
 ComPtr<ID3D11VertexShader> basicVS;
+ComPtr<ID3D11VertexShader> skyboxVS;
 ComPtr<ID3D11PixelShader> basicPS;
+ComPtr<ID3D11PixelShader> skyboxPS;
 
 // Input Layouts
 ComPtr<ID3D11InputLayout> basicIL;
+ComPtr<ID3D11InputLayout> skyboxIL;
 
 // Graphics Pipeline States
 GraphicsPSO defaultSolidPSO;
 GraphicsPSO defaultWirePSO;
 GraphicsPSO stencilMaskPSO;
+GraphicsPSO skyboxSolidPSO;
+GraphicsPSO skyboxWirePSO;
 
 void InitCommonStates(ComPtr<ID3D11Device> &device) 
 {
@@ -69,12 +74,14 @@ void InitRasterizerStates(ComPtr<ID3D11Device> &device) {
     D3D11_RASTERIZER_DESC rastDesc;
     ZeroMemory(&rastDesc, sizeof(D3D11_RASTERIZER_DESC));
     rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
-    rastDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_BACK;
+    rastDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
     rastDesc.FrontCounterClockwise = false;
     rastDesc.DepthClipEnable = true;
-    rastDesc.MultisampleEnable = true;
 
     ThrowIfFailed(device->CreateRasterizerState(&rastDesc, solidRS.GetAddressOf()));
+
+    rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_WIREFRAME;
+    ThrowIfFailed(device->CreateRasterizerState(&rastDesc, wireCCWRS.GetAddressOf()));
 }
 
 void InitBlendStates(ComPtr<ID3D11Device> &device) {
@@ -105,12 +112,27 @@ void InitDepthStencilStates(ComPtr<ID3D11Device> &device) {
 }
 
 void InitPipelineStates(ComPtr<ID3D11Device> &device) {
+    // Define Pass
     // DefaultSolidPSO State
     defaultSolidPSO.m_vertexShader = basicVS;
     defaultSolidPSO.m_inputLayout = basicIL;
     defaultSolidPSO.m_pixelShader = basicPS;
     defaultSolidPSO.m_rasterizerState = solidRS;
     defaultSolidPSO.m_primitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+        // defaultWirePSO
+    defaultWirePSO = defaultSolidPSO;
+    defaultWirePSO.m_rasterizerState = wireRS;
+
+    // skyboxSolidPSO
+    skyboxSolidPSO = defaultSolidPSO;
+    skyboxSolidPSO.m_vertexShader = skyboxVS;
+    skyboxSolidPSO.m_pixelShader = skyboxPS;
+    skyboxSolidPSO.m_inputLayout = skyboxIL;
+
+    // skyboxWirePSO
+    skyboxWirePSO = skyboxSolidPSO;
+    skyboxWirePSO.m_rasterizerState = wireRS;
 }
 
 void InitShaders(ComPtr<ID3D11Device> &device) {
@@ -121,10 +143,19 @@ void InitShaders(ComPtr<ID3D11Device> &device) {
         {"TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0},
     };
 
+    vector<D3D11_INPUT_ELEMENT_DESC> skyboxIE = {
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0},
+    };
+
     D3D11Utils::CreateVertexShaderAndInputLayout(device, L"BasePass.vert.hlsl", basicIEs, basicVS,
                                                  basicIL);
-
     D3D11Utils::CreatePixelShader(device, L"BasePass.frag.hlsl", basicPS);
+    D3D11Utils::CreateVertexShaderAndInputLayout(device, L"SkyBox.vert.hlsl", skyboxIE, skyboxVS,
+                                                 skyboxIL);
+    D3D11Utils::CreatePixelShader(device, L"SkyBox.frag.hlsl", basicPS);
 }
 
 

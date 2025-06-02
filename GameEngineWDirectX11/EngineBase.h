@@ -14,6 +14,7 @@
 #include <DirectXCollision.h>
 #include "InputSystem.h"
 #include "ConstantBuffer.h"
+#include "Camera.h"
 
 namespace Luna {
 	using Microsoft::WRL::ComPtr;
@@ -40,6 +41,9 @@ namespace Luna {
         void InitCubeMaps(wstring basePath, wstring envFileName, wstring specularFileName,
                           wstring irridianceFileName, wstring brdfFileName);
         void SetGlobalConstants(ComPtr<ID3D11Buffer>& buffer);
+        void SetPipelineState(const class GraphicsPSO &pso);
+        void UpdateGlobalConstants(const Vector3 &eyeworld, const Matrix &view, const Matrix& proj,
+                                   const Matrix &refl = Matrix());
 
       protected:
         bool InitMainWindow();
@@ -65,6 +69,7 @@ namespace Luna {
         ComPtr<ID3D11DeviceContext>     m_d3dContext;
         ComPtr<IDXGIFactory1>           m_dxgiFactory;
         ComPtr<IDXGISwapChain>          m_d3dSwapChain;
+
         ComPtr<ID3D11RasterizerState>   m_d3dRasterizerState;
         ComPtr<ID3D11RenderTargetView>  m_d3dBackBufferRTV;
         
@@ -91,8 +96,6 @@ namespace Luna {
         GlobalConstants m_globalConstsCPU;
         ComPtr<ID3D11Buffer> m_globalConstsGPU;
 
-
-        InputState m_inputState;
-
+        Camera m_camera;
 	};
 }

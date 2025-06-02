@@ -42,6 +42,7 @@
 #include <DirectXColors.h>
 #include <d3dcompiler.h>
 
+#include <iostream>
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -52,6 +53,8 @@
 #include <tuple>
 #include <string>
 #include <vector>
+#include <filesystem>
+#include <limits>
 
 #include <directxtk/DDSTextureLoader.h>
 #include <DirectXMath.h>

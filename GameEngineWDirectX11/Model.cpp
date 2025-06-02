@@ -23,16 +23,20 @@ void Model::Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext>
 void Model::Initialize(ComPtr<ID3D11Device> &device, 
                        ComPtr<ID3D11DeviceContext> &context,
                        const std::vector<MeshData> &meshes) {
+
     m_meshConstsCPU.world = Matrix();
     
     D3D11Utils::CreateConstantBuffer(device, m_meshConstsCPU, m_meshConstsGPU);
     D3D11Utils::CreateConstantBuffer(device, m_materialConstsCPU, m_materialConstsGPU);
 
     for (const auto &meshData : meshes) {
+
         std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
         D3D11Utils::CreateVertexBuffer(device, meshData.vertices, mesh->vertexBuffer);
+        
         mesh->vertexCount = UINT(meshData.vertices.size());
         mesh->indexCount = UINT(meshData.indices.size());
+        
         D3D11Utils::CreateIndexBuffer(device, meshData.indices, mesh->indexBuffer);
 
         if (!meshData.albedoTextureFilename.empty()) {

@@ -24,14 +24,19 @@ using Microsoft::WRL::ComPtr;
     // Shader
     extern ComPtr<ID3D11VertexShader> basicVS;
     extern ComPtr<ID3D11PixelShader> basicPS;
+    extern ComPtr<ID3D11VertexShader> skyboxVS;
+    extern ComPtr<ID3D11PixelShader> skyboxPS;
 
     // Input Layouts
     extern ComPtr<ID3D11InputLayout> basicIL;
+    extern ComPtr<ID3D11InputLayout> skyboxIL;
 
     // Graphics PipelineStates
     extern GraphicsPSO defaultSolidPSO;
     extern GraphicsPSO defaultWirePSO;
     extern GraphicsPSO stencilMaskPSO;
+    extern GraphicsPSO skyboxSolidPSO;
+    extern GraphicsPSO skyboxWirePSO;
 
     void InitCommonStates(ComPtr<ID3D11Device> &device);
     void InitSamplers(ComPtr<ID3D11Device> &device);
