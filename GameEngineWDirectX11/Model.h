@@ -3,8 +3,6 @@
 #include "ConstantBuffer.h"
 #include "Mesh.h"
 #include "MeshData.h"
-#include "GeometryGenerator.h"
-#include "D3DUtils.h"
 
 namespace Luna {
 using namespace std;
@@ -13,13 +11,20 @@ class Model {
     void Initialize(ComPtr<ID3D11Device> &device, const std::string &basePath,
                     const std::string &filename);
 
-    void Initialize(ComPtr<ID3D11Device> &device, const std::vector<MeshData> &meshes);
+    void Initialize(ComPtr<ID3D11Device> &device, 
+                    const std::vector<MeshData> &meshes);
 
-    void UpdateConstantBuffers(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext> &context);
+    void UpdateConstantBuffers(ComPtr<ID3D11Device> &device, 
+                               ComPtr<ID3D11DeviceContext> &context);
 
     void Render(ComPtr<ID3D11DeviceContext> &context);
 
+    void UpdateModelWorld(const Matrix &modelToWorld);
+
   public:
+    Matrix m_modelWorld = Matrix();
+    Matrix m_modelWorldIT = Matrix();
+
     BasicVertexConstantData m_basicVertexConstantData;
     BasicPixelConstantData m_basicPixelConstantData;
 
@@ -42,8 +47,6 @@ class Model {
 
     ComPtr<ID3D11VertexShader> m_normalVertexShader;
     ComPtr<ID3D11PixelShader> m_normalPixelShader;
-
-    shared_ptr<Mesh> m_normalLines;
 
     ComPtr<ID3D11Buffer> m_normalVertexConstantBuffer;
     ComPtr<ID3D11Buffer> m_normalPixelConstantBuffer;
