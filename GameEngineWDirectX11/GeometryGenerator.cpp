@@ -21,9 +21,6 @@ MeshData GeometryGenerator::MakeSquare(const float scale) {
     normals.push_back(Vector3(0.0f, 0.0f, -1.0f));
     normals.push_back(Vector3(0.0f, 0.0f, -1.0f));
     normals.push_back(Vector3(0.0f, 0.0f, -1.0f));
-
-    // Texture Coordinates (Direct3D 9)
-    // https://learn.microsoft.com/en-us/windows/win32/direct3d9/texture-coordinates
     texcoords.push_back(Vector2(0.0f, 0.0f));
     texcoords.push_back(Vector2(1.0f, 0.0f));
     texcoords.push_back(Vector2(1.0f, 1.0f));
@@ -248,8 +245,6 @@ MeshData GeometryGenerator::MakeSphere(const float radius, const int numSlices,
             vertices.push_back(v);
         }
     }
-
-    // cout << vertices.size() << endl;
 
     vector<uint32_t> &indices = meshData.indices;
 

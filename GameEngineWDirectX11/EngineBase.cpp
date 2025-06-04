@@ -53,8 +53,6 @@ int EngineBase::Run() {
 
             ImGui::NewFrame();
             ImGui::Begin("Scene Control");
-
-            // ImGui가 측정해주는 Framerate 출력
             ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
                         ImGui::GetIO().Framerate);
 
@@ -110,8 +108,6 @@ LRESULT EngineBase::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             D3D11Utils::CreateDepthBuffer(m_d3dDevice, m_screenWidth, m_screenHeight,
                                           m_numQualityLevels, m_d3dDepthStencilView);
             SetViewport();
-
-            // 화면 해상도가 바뀌면 카메라의 aspect ratio도 변경
             m_camera->SetAspectRatio(this->GetAspectRatio());
         }
         break;
@@ -261,7 +257,8 @@ bool EngineBase::InitD3D() {
     sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     sd.BufferDesc.RefreshRate.Numerator = 60;
     sd.BufferDesc.RefreshRate.Denominator = 1;
-    sd.BufferUsage = DXGI_USAGE_SHADER_INPUT | DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    // sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT; // Use this as Image Filter 
+    sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     sd.BufferCount = 2;
     sd.OutputWindow = m_mainWindow;
     sd.Windowed = TRUE;
@@ -282,6 +279,7 @@ bool EngineBase::InitD3D() {
     }
     
     CreateRenderTargetView();
+
     SetViewport();
     
     // Create Rasterizer State
