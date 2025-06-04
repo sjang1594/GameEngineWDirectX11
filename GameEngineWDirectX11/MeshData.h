@@ -15,9 +15,11 @@ struct MeshData {
     std::vector<uint32_t> indices;
 
     std::string albedoTextureFilename;
+    std::string emissiveTextureFilename;
     std::string normalTextureFilename;
     std::string heightTextureFilename;
     std::string aoTextureFilename;
+    std::string metallicTextureFilename;
     std::string roughnessTextureFilename;
 };
 

@@ -33,6 +33,7 @@ MeshData GeometryGenerator::MakeSquare(const float scale) {
         v.position = positions[i];
         v.normal = normals[i];
         v.texcoord = texcoords[i];
+        v.tangent = Vector3(1.0f, 0.0f, 0.0f);
 
         // v.color = colors[i];
 
@@ -50,6 +51,7 @@ MeshData GeometryGenerator::MakeBox(const float scale) {
     vector<Vector3> positions;
     vector<Vector3> colors;
     vector<Vector3> normals;
+    vector<Vector3> tangents; // TODO: Fill the tangent space
     vector<Vector2> texcoords;
 
     // À­¸é

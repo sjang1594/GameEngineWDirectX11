@@ -15,7 +15,7 @@ class ModelLoader {
     void Load(std::string basePath, std::string filename);
 
     void ProcessNode(aiNode *node, const aiScene *scene, Matrix parentTransform);
-
+    std::string ReadFilename(aiMaterial *material, aiTextureType type);
     MeshData ProcessMesh(aiMesh *mesh, const aiScene *scene);
 
   public:

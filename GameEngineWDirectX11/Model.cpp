@@ -111,6 +111,7 @@ void Model::Render(ComPtr<ID3D11DeviceContext> &context) {
         context->PSSetShader(m_basicPixelShader.Get(), 0, 0);
 
         vector<ID3D11ShaderResourceView *> resViews = {
+            nullptr, nullptr,
             mesh->albedoTextureResourceView.Get(), mesh->normalTextureResourceView.Get(),
             mesh->heightTextureResourceView.Get(), mesh->aoTextureResourceView.Get(),
             mesh->roughnessTextureResourceView.Get()};

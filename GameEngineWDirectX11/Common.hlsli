@@ -98,15 +98,17 @@ struct VertexShaderInput
 {
     float3 posModel : POSITION;
     float3 normalModel : NORMAL;    
-    float2 texcoord : TEXCOORD0;    
+    float2 texcoord : TEXCOORD0;
+    float3 tangentWorld : TANGENT0;
 };
 
 struct PixelShaderInput
 {
-    float4 posProj : SV_POSITION;
-    float3 posWorld : POSITION;
-    float3 normalWorld : NORMAL;
+    float4 posProj : SV_POSITION; // Screen Pos
+    float3 posWorld : POSITION;   // World Position
+    float3 normalWorld : NORMAL0;
     float2 texcoord : TEXCOORD;
+    float3 tangentWorld : TANGENT0;
     float3 color : COLOR;
 };
 

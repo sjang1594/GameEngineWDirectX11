@@ -16,7 +16,7 @@ bool App::Initialize() {
 
     // Ground
     {
-        MeshData ground = GeometryGenerator::MakeSquare(3.0f);
+        MeshData ground = GeometryGenerator::MakeSquare(1.0f);
         ground.albedoTextureFilename =
             "../Assets/Textures/Ground/Grass007_4K-JPG/Grass007_4K-JPG_Color.jpg";
         ground.normalTextureFilename =
@@ -27,6 +27,17 @@ bool App::Initialize() {
             "../Assets/Textures/Ground/Grass007_4K-JPG/Grass007_4K-JPG_Displacement.jpg";
         ground.roughnessTextureFilename =
             "../Assets/Textures/Ground/Grass007_4K-JPG/Grass007_4K-JPG_Roughness.jpg";
+
+        //ground.albedoTextureFilename =
+        //    "../Assets/Textures/Ground/Bricks075A_4K-PNG/Bricks075A_4K-PNG_Color.png";
+        //ground.normalTextureFilename =
+        //    "../Assets/Textures/Ground/Bricks075A_4K-PNG/Bricks075A_4K-PNG_NormalDX.png";
+        //ground.aoTextureFilename =
+        //    "../Assets/Textures/Ground/Bricks075A_4K-PNG/Bricks075A_4K-PNG_AmbientOcclusion.png";
+        //ground.heightTextureFilename =
+        //    "../Assets/Textures/Ground/Bricks075A_4K-PNG/Bricks075A_4K-PNG_Displacement.png";
+        //ground.roughnessTextureFilename =
+        //    "../Assets/Textures/Ground/Bricks075A_4K-PNG/Bricks075A_4K-PNG_Roughness.png";
         
         m_groundModel.Initialize(m_d3dDevice, std::vector<MeshData>{ground});
         m_groundModel.m_diffuseResView = m_cubeMapping.m_diffuseResView;
@@ -48,7 +59,7 @@ void App::Update(float dt) {
     if (m_keyPressed[87])
         m_camera->MoveForward(dt);
     if (m_keyPressed[83])
-        m_camera->MoveForward(dt);
+        m_camera->MoveForward(-dt);
     if (m_keyPressed[68])
         m_camera->MoveRight(dt);
     if (m_keyPressed[65])
