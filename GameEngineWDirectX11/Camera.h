@@ -30,9 +30,8 @@ class Camera {
     float m_yaw = 0.0f;
     float m_roll = 0.0f;
 
-    float m_speed = 1.0f; // 움직이는 속도
+    float m_speed = 0.5f; // Movement Speed
 
-    // 프로젝션 옵션도 카메라 클래스로 이동
     float m_projFovAngleY = 70.0f;
     float m_nearZ = 0.01f;
     float m_farZ = 100.0f;
