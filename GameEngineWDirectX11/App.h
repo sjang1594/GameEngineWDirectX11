@@ -14,6 +14,7 @@ namespace Luna {
         virtual void Render() override;
 
       protected:
+        // Don't use shared_ptr.
         Model m_groundModel;
         CubeMapping m_cubeMapping;
         bool m_usePerspectiveProjection = true;

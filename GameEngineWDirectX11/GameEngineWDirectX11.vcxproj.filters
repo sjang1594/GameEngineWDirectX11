@@ -112,6 +112,7 @@
     <None Include="Common.hlsli">
       <Filter>Shader</Filter>
     </None>
+    <None Include="..\README.md" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Base.vert.hlsl">

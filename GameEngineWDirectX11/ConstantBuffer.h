@@ -20,10 +20,13 @@ static_assert((sizeof(BasicVertexConstantData) % 16) == 0,
               "Constant Buffer size must be 16-byte aligned");
 
 struct BasicPixelConstantData {
-    Vector3 eyeWorld;         // 12
-    bool useTexture;          // bool 1 + 3 padding
-    Material material;        // 48
-    Light lights[MAX_LIGHTS]; // 48 * MAX_LIGHTS
+    Vector3 eyeWorld;          // 12
+    float dummy1;              // 4
+    Material material;         // 64 
+    Light lights[MAX_LIGHTS];  // 48 * MAX_LIGHTS
+    int reverseNormalMapY = 0; // 4
+    float heightScale;         // 4
+    float dummy2[2];           // 8
 };
 
 static_assert((sizeof(BasicPixelConstantData) % 16) == 0,

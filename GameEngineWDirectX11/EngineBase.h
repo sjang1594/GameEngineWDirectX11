@@ -44,8 +44,10 @@ namespace Luna {
         bool                             m_enableDepthTest;
         bool                             m_enableDepthWrite;
         bool                             m_wireframe;
+
         UINT                             m_numQualityLevels;
         D3D11_VIEWPORT                   m_screenViewport;
+
         ComPtr<ID3D11Device>             m_d3dDevice;
         ComPtr<ID3D11DeviceContext>      m_d3dContext;
         ComPtr<IDXGIFactory1>            m_dxgiFactory;

@@ -13,7 +13,14 @@ using std::vector;
 struct MeshData {
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
-    std::string textureFilename;
+
+    std::string albedoTextureFilename;
+    std::string emissiveTextureFilename;
+    std::string normalTextureFilename;
+    std::string heightTextureFilename;
+    std::string aoTextureFilename;
+    std::string metallicTextureFilename;
+    std::string roughnessTextureFilename;
 };
 
 } // namespace Luna

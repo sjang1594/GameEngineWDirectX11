@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include "MeshData.h"
+#include "Vertex.h"
 
 namespace Luna {
 using namespace std;
@@ -11,7 +12,6 @@ using namespace DirectX::SimpleMath;
 class GeometryGenerator {
   public:
     static vector<MeshData> ReadFromFile(std::string basePath, std::string filename);
-
     static MeshData MakeSquare(const float scale = 1.0f);
     static MeshData MakeBox(const float scale = 1.0f);
     static MeshData MakeCylinder(const float bottomRadius, const float topRadius, float height,

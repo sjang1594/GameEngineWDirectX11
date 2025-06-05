@@ -47,6 +47,21 @@ void ModelLoader::ProcessNode(aiNode * node, const aiScene *scene, Matrix parent
     }
 }
 
+std::string ModelLoader::ReadFilename(aiMaterial *material, aiTextureType type) {
+    if (material->GetTextureCount(type) > 0) {
+        aiString filepath;
+        material->GetTexture(type, 0, &filepath);
+
+        std::string fullPath =
+            this->m_basePath +
+            std::string(std::filesystem::path(filepath.C_Str()).filename().string());
+
+        return fullPath;
+    } else {
+        return "";
+    }
+}
+
 MeshData ModelLoader::ProcessMesh(aiMesh *mesh, const aiScene *scene) { 
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
@@ -82,19 +97,15 @@ MeshData ModelLoader::ProcessMesh(aiMesh *mesh, const aiScene *scene) {
     newMesh.vertices = vertices;
     newMesh.indices = indices;
 
-    // http://assimp.sourceforge.net/lib_html/materials.html
     if (mesh->mMaterialIndex >= 0) {
         aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
-
-        if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
-            aiString filepath;
-            material->GetTexture(aiTextureType_DIFFUSE, 0, &filepath);
-
-            std::string fullPath =
-                m_basePath + std::string(std::filesystem::path(filepath.C_Str()).filename().string());
-
-            newMesh.textureFilename = fullPath;
-        }
+        newMesh.albedoTextureFilename = ReadFilename(material, aiTextureType_BASE_COLOR);
+        newMesh.emissiveTextureFilename = ReadFilename(material, aiTextureType_EMISSIVE);
+        newMesh.heightTextureFilename = ReadFilename(material, aiTextureType_HEIGHT);
+        newMesh.normalTextureFilename = ReadFilename(material, aiTextureType_NORMALS);
+        newMesh.metallicTextureFilename = ReadFilename(material, aiTextureType_METALNESS);
+        newMesh.roughnessTextureFilename = ReadFilename(material, aiTextureType_DIFFUSE_ROUGHNESS);
+        newMesh.aoTextureFilename = ReadFilename(material, aiTextureType_AMBIENT_OCCLUSION);
     }
 
     return newMesh;

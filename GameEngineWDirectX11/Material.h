@@ -13,8 +13,8 @@ struct Material {
     float dummy1;                                    // 4
     Vector3 specular = Vector3(1.0f);                // 12
     float dummy2;                                    // 4
-    Vector3 fresnelR0 = Vector3(1.0f, 0.71f, 0.29f); // Gold
-    float dummy3;
+    Vector3 fresnelR0 = Vector3(1.0f, 0.71f, 0.29f); // 12
+    float dummy3;                                    // 4
 };
 
 } // namespace Luna

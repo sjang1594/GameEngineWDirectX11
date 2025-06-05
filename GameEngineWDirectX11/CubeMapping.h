@@ -26,7 +26,6 @@ class CubeMapping {
 
   public:
     ComPtr<ID3D11ShaderResourceView> m_originalResView;
-    
     ComPtr<ID3D11ShaderResourceView> m_diffuseResView;
     ComPtr<ID3D11ShaderResourceView> m_specularResView;
 

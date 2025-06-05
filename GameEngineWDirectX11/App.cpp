@@ -14,22 +14,41 @@ bool App::Initialize() {
                              L"../Assets/Cubemaps/skybox/cubemap_diffuse.dds",
                              L"../Assets/Cubemaps/skybox/cubemap_specular.dds");
 
-    MeshData ground = GeometryGenerator::MakeSquare(3.0f);
-    ground.textureFilename = "../Assets/Texture/grass-texture-background.jpg";
-    m_groundModel.Initialize(m_d3dDevice, std::vector<MeshData>{ground});
-    m_groundModel.m_diffuseResView = m_cubeMapping.m_diffuseResView;
-    m_groundModel.m_specularResView = m_cubeMapping.m_specularResView;
+    // Ground
+    {
+        MeshData ground = GeometryGenerator::MakeSquare(1.0f);
+        ground.albedoTextureFilename =
+            "../Assets/Textures/Ground/Grass007_4K-JPG/Grass007_4K-JPG_Color.jpg";
+        ground.normalTextureFilename =
+            "../Assets/Textures/Ground/Grass007_4K-JPG/Grass007_4K-JPG_NormalDX.jpg";
+        ground.aoTextureFilename =
+            "../Assets/Textures/Ground/Grass007_4K-JPG/Grass007_4K-JPG_AmbientOcclusion.jpg";
+        ground.heightTextureFilename =
+            "../Assets/Textures/Ground/Grass007_4K-JPG/Grass007_4K-JPG_Displacement.jpg";
+        ground.roughnessTextureFilename =
+            "../Assets/Textures/Ground/Grass007_4K-JPG/Grass007_4K-JPG_Roughness.jpg";
 
-    Matrix modelMat = Matrix::CreateRotationX(DirectX::XM_PIDIV2);
-    Matrix inverseTranspose = modelMat;
-    inverseTranspose.Translation(Vector3(0.0f));
-    inverseTranspose = inverseTranspose.Invert().Transpose();
-
-    m_groundModel.m_basicVertexConstantData.model = modelMat.Transpose();
-    m_groundModel.m_basicVertexConstantData.invTranspose = inverseTranspose.Transpose();
-    m_groundModel.m_basicPixelConstantData.useTexture = true;
-    m_groundModel.m_basicPixelConstantData.material.diffuse = Vector3(1.0f);
-    m_groundModel.UpdateConstantBuffers(m_d3dDevice, m_d3dContext);
+        //ground.albedoTextureFilename =
+        //    "../Assets/Textures/Ground/Bricks075A_4K-PNG/Bricks075A_4K-PNG_Color.png";
+        //ground.normalTextureFilename =
+        //    "../Assets/Textures/Ground/Bricks075A_4K-PNG/Bricks075A_4K-PNG_NormalDX.png";
+        //ground.aoTextureFilename =
+        //    "../Assets/Textures/Ground/Bricks075A_4K-PNG/Bricks075A_4K-PNG_AmbientOcclusion.png";
+        //ground.heightTextureFilename =
+        //    "../Assets/Textures/Ground/Bricks075A_4K-PNG/Bricks075A_4K-PNG_Displacement.png";
+        //ground.roughnessTextureFilename =
+        //    "../Assets/Textures/Ground/Bricks075A_4K-PNG/Bricks075A_4K-PNG_Roughness.png";
+        
+        m_groundModel.Initialize(m_d3dDevice, std::vector<MeshData>{ground});
+        m_groundModel.m_diffuseResView = m_cubeMapping.m_diffuseResView;
+        m_groundModel.m_specularResView = m_cubeMapping.m_specularResView;
+        m_groundModel.UpdateModelWorld(Matrix::CreateRotationX(DirectX::XM_PIDIV2));
+        m_groundModel.m_basicPixelConstantData.heightScale = 0.02f;
+        m_groundModel.m_basicPixelConstantData.reverseNormalMapY = false; // IF OPENGL, SET TRUE
+        m_groundModel.m_basicPixelConstantData.material.diffuse = Vector3(1.0f);
+        m_groundModel.m_basicPixelConstantData.material.specular = Vector3(0.0f);
+        m_groundModel.UpdateConstantBuffers(m_d3dDevice, m_d3dContext);
+    }
     return true; 
 }
 
@@ -40,7 +59,7 @@ void App::Update(float dt) {
     if (m_keyPressed[87])
         m_camera->MoveForward(dt);
     if (m_keyPressed[83])
-        m_camera->MoveForward(dt);
+        m_camera->MoveForward(-dt);
     if (m_keyPressed[68])
         m_camera->MoveRight(dt);
     if (m_keyPressed[65])
@@ -50,9 +69,10 @@ void App::Update(float dt) {
     Matrix proj = m_camera->GetProjRow();
     Vector3 eyeWorld = m_camera->GetEyePos();
 
-    m_cubeMapping.UpdateConstantBuffers(m_d3dDevice, m_d3dContext, view.Transpose(),
+    Matrix viewEnv = view;
+    viewEnv.Translation(Vector3(0.0f));
+    m_cubeMapping.UpdateConstantBuffers(m_d3dDevice, m_d3dContext, viewEnv.Transpose(),
                                          proj.Transpose());
-    m_groundModel.m_basicPixelConstantData.useTexture = true;
     m_groundModel.m_basicPixelConstantData.eyeWorld = eyeWorld;
     m_groundModel.m_basicVertexConstantData.view = view.Transpose();
     m_groundModel.m_basicVertexConstantData.projection = proj.Transpose();
