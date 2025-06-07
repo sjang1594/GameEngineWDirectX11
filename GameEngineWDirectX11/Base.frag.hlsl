@@ -39,11 +39,11 @@ float3 SchlickFresnel(float3 fresnelR0, float3 normal, float3 toEye)
 // https://www.d3dcoder.net/Data/Resources/ParallaxOcclusion.pdf
 float2 ParallaxOcclusionMap(float2 inputTexture, float3 normalWorld, float3 viewDir, float3 viewDirTS, float distance)
 {
-    float2 maxParallaxOffset = -viewDirTS.xy * 0.02 / max(viewDirTS.z, 0.01);
+    float2 maxParallaxOffset = -viewDirTS.xy * 0.002 / max(viewDirTS.z, 0.01);
    
     float angleFactor = dot(viewDir, normalWorld);
     const int minLayer = 8;
-    const int maxLayer = 16;
+    const int maxLayer = 32;
     int sampleCount = (int) lerp(maxLayer, minLayer, angleFactor);
     
     float layerDepth = 1.0f / (float) sampleCount;
@@ -66,6 +66,7 @@ float2 ParallaxOcclusionMap(float2 inputTexture, float3 normalWorld, float3 view
     {
         
         currHeight = g_heightTexture.SampleGrad(g_sampler, inputTexture + currTexOffset, dx, dy).r;
+        currHeight = smoothstep(0.2, 0.8, currHeight);
         if (currHeight > currRayZ)
         {
             // Interpolation
@@ -84,15 +85,16 @@ float2 ParallaxOcclusionMap(float2 inputTexture, float3 normalWorld, float3 view
         }
     }
    
-    return inputTexture + finalTexOffset;
-    //return inputTexture + finalTexOffset;
+    return clamp(inputTexture + finalTexOffset, 0, 1);
 }
 
 float4 main(PixelShaderInput input) : SV_TARGET {
     float3 toEye = normalize(eyeWorld - input.posWorld);
     float3 viewDir = -toEye;
     float dist = length(eyeWorld - input.posWorld);
-
+    float distMin = 3.0;
+    float distMax = 10.0;
+    float lod = 10.0 * saturate(dist / (distMax - distMin));
     float3 N = input.normalWorld;
     float3 T = normalize(input.tangentWorld - dot(input.tangentWorld, N) * N);
     float3 B = cross(N, T);
@@ -102,14 +104,17 @@ float4 main(PixelShaderInput input) : SV_TARGET {
     
     float2 parallaxUV = ParallaxOcclusionMap(input.texcoord, input.normalWorld, viewDir, viewDirTS, dist);
     
-    float4 albedo = g_albedoTexture.Sample(g_sampler, parallaxUV);
-    float3 normalTex = g_normalTexture.Sample(g_sampler, parallaxUV).rgb * 2.0 - 1.0;
+    float2 dx = ddx(parallaxUV);
+    float2 dy = ddy(parallaxUV);
+    
+    float4 albedo = g_albedoTexture.SampleLevel(g_sampler, parallaxUV, lod);
+    float3 normalTex = g_normalTexture.SampleLevel(g_sampler, parallaxUV, lod).rgb * 2.0 - 1.0;
     if (reverseNormalMapY)
     {
         normalTex.y = -normalTex.y;
     }
-    float ao = g_aoTexture.Sample(g_sampler, parallaxUV).r;
-    float roughness = g_roughnessTexture.Sample(g_sampler, parallaxUV).r;
+    float ao = g_aoTexture.SampleLevel(g_sampler, parallaxUV, lod).r;
+    float roughness = g_roughnessTexture.SampleLevel(g_sampler, parallaxUV, lod).r;
     
     float3 normalWorld = normalize(mul(normalTex, TBN));
     float3 color = float3(0, 0, 0);
