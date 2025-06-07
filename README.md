@@ -1,5 +1,5 @@
 ## Project Creation:
-To set up a DirectX11 project, follow the DirectXTK documentation for creating a basic game loop, as referenced: DirectXTK Basic Game Loop. Here¡¯s a concise guide to get started:
+To set up a DirectX11 project, follow the DirectXTK documentation for creating a basic game loop, as referenced: DirectXTK Basic Game Loop. HereÂ¡Â¯s a concise guide to get started:
 [DirectXTK](https://github.com/microsoft/DirectXTK/wiki/The-basic-game-loop)
 
 ## Environment Setup:
@@ -23,12 +23,12 @@ It's important to figure out what to implement and the ideas are coming from the
 ### CubeMapping [o]:
 
 Status: Implemented.
-Details: Cube mapping is likely used for a skybox or environment mapping (e.g., reflections on objects). You¡¯ve completed this, so your project likely has:
+Details: Cube mapping is likely used for a skybox or environment mapping (e.g., reflections on objects). YouÂ¡Â¯ve completed this, so your project likely has:
 A cube map texture (six faces: +X, -X, +Y, -Y, +Z, -Z).
 A skybox shader rendering the cube map.
 Possibly environment mapping on objects for reflections.
 
-### Height Mapping Settings []:
+### Height Mapping Settings [o]:
 Status: In progress.
 Details: Height mapping typically refers to techniques like:
 Parallax Mapping: Uses a height map to offset texture coordinates for depth illusion.
@@ -44,7 +44,7 @@ Status: Implemented.
 Details: Likely refers to the Schlick-Fresnel effect, a simplified Fresnel approximation used in physically-based rendering (PBR) to model how light reflects more at grazing angles.
 Implementation Notes:
 
-Calculate the Fresnel term using Schlick¡¯s approximation:
+Calculate the Fresnel term using SchlickÂ¡Â¯s approximation:
 $$F = F_0 + (1 - F_0) \cdot (1 - \cos\theta)^5$$
 where $ F_0 $ is the base reflectivity, and $ \theta $ is the angle between the view vector and surface normal.
 This is typically part of a PBR pipeline, affecting specular highlights.
@@ -77,12 +77,12 @@ Status: Not started.
 Details: GLTF (GL Transmission Format) is a standard for 3D models, supporting meshes, materials, and animations. Loading GLTF models will allow you to import complex assets.
 Implementation Guide:
 
-Library: Use a GLTF loader like tinygltf or Microsoft¡¯s glTF SDK.
+Library: Use a GLTF loader like tinygltf or MicrosoftÂ¡Â¯s glTF SDK.
 Integration:
 
 Parse the GLTF file to extract meshes, textures, and materials.
 Convert GLTF data to DirectX11-compatible formats (e.g., vertex buffers, index buffers).
-Load textures using DirectXTK¡¯s texture loaders.
+Load textures using DirectXTKÂ¡Â¯s texture loaders.
 
 ### Object Collision & Picking [x]:
 
@@ -94,17 +94,17 @@ Collision:
 
 Use bounding volumes (e.g., spheres, AABBs) for simple collision detection.
 For precise collision, implement triangle-ray intersection tests.
-DirectXTK¡¯s SimpleMath::BoundingBox and BoundingSphere can simplify this.
+DirectXTKÂ¡Â¯s SimpleMath::BoundingBox and BoundingSphere can simplify this.
 
 Picking:
 
-Convert mouse coordinates to a 3D ray using the camera¡¯s projection and view matrices.
+Convert mouse coordinates to a 3D ray using the cameraÂ¡Â¯s projection and view matrices.
 Test the ray against object bounding volumes or triangles.
 Example: Use SimpleMath::Ray to perform ray-AABB tests.
 
 ### Unreal PBR & Disney []:
 Status: In progress.
-Details: Likely refers to implementing a physically-based rendering (PBR) pipeline similar to Unreal Engine¡¯s, incorporating metallic-roughness workflows, IBL, and effects like Schlick-Fresnel.
+Details: Likely refers to implementing a physically-based rendering (PBR) pipeline similar to Unreal EngineÂ¡Â¯s, incorporating metallic-roughness workflows, IBL, and effects like Schlick-Fresnel.
 Implementation Guide:
 
 PBR Components:
@@ -122,7 +122,7 @@ Combine with IBL (from HDRI feature) and direct lighting (e.g., a point light).
 
 DirectXTK: Use PBREffect from DirectXTK for a pre-built PBR shader, or write a custom one for learning.
 Progress: Since Schlick-Fresnel is done, focus on integrating metallic-roughness textures and IBL (ties into HDRI feature).
-Resources: Study Unreal¡¯s PBR pipeline via Unreal Engine documentation for inspiration.
+Resources: Study UnrealÂ¡Â¯s PBR pipeline via Unreal Engine documentation for inspiration.
 
 ## Resource & Assets
 
