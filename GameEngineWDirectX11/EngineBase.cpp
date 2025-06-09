@@ -245,7 +245,8 @@ bool EngineBase::InitD3D() {
     std::cout << "Direct3D 11 device created successfully with feature level: " << featureLevel
               << std::endl;
 
-    m_d3dDevice->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, 4, &m_numQualityLevels);
+    m_d3dDevice->CheckMultisampleQualityLevels(DXGI_FORMAT_R16G16B16A16_FLOAT, 4,
+                                               &m_numQualityLevels);
 
     if (m_numQualityLevels == 0) {
         std::cout << "MSAA not supported. Disabling MSAA." << std::endl;
@@ -254,7 +255,7 @@ bool EngineBase::InitD3D() {
     DXGI_SWAP_CHAIN_DESC sd = {};
     sd.BufferDesc.Width = m_screenWidth;
     sd.BufferDesc.Height = m_screenHeight;
-    sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    sd.BufferDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
     sd.BufferDesc.RefreshRate.Numerator = 60;
     sd.BufferDesc.RefreshRate.Denominator = 1;
     // sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT; // Use this as Image Filter 
@@ -264,6 +265,8 @@ bool EngineBase::InitD3D() {
     sd.Windowed = TRUE;
     sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
     sd.Flags = m_fullscreen ? DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH : 0;
+    std::cout << "FullScreen " << m_fullscreen << std::endl;
+
     if (m_numQualityLevels > 0) {
         sd.SampleDesc.Count = 4; // how many multisamples
         sd.SampleDesc.Quality = m_numQualityLevels - 1;
