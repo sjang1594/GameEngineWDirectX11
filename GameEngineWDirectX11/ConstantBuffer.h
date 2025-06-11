@@ -1,6 +1,5 @@
-
+#pragma once
 #include <directxtk/SimpleMath.h>
-
 #include "Light.h"
 #include "Material.h"
 
@@ -33,8 +32,26 @@ static_assert((sizeof(BasicPixelConstantData) % 16) == 0,
               "Constant Buffer size must be 16-byte aligned");
 
 struct NormalVertexConstantData {
-    float scale = 0.1f;
-    float dummy[3];
+    float scale = 0.1f; // 4
+    float dummy1;       // 4
+    float dummy2[2];    // 8
 };
+
+static_assert((sizeof(NormalVertexConstantData) % 16) == 0,
+              "Constant Buffer size must be 16-byte aligned");
+
+struct ImageFilterConstantData {
+    float dx;
+    float dy;
+    float threshold;
+    float strength;
+    float option1;
+    float option2;
+    float option3;
+    float option4;
+};
+
+static_assert((sizeof(ImageFilterConstantData) % 16) == 0,
+              "Constant Buffer size must be 16-byte aligned");
 
 } // namespace Luna

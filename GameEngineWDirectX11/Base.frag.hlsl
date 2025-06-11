@@ -1,6 +1,5 @@
 #include "Common.hlsli"
 
-// TODO: Switch to BRDF
 TextureCube g_diffuseCube : register(t0);
 TextureCube g_specularCube : register(t1);
 
