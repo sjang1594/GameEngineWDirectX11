@@ -52,8 +52,8 @@ This is typically part of a PBR pipeline, affecting specular highlights.
 Ensuring the effect integrates with your cube mapping (e.g., environment map reflections scale with Fresnel).
 Test edge cases (e.g., grazing angles on smooth surfaces) to confirm visual accuracy. [TODO]
 
-### HDRI [x]
-Status: Not started.
+### HDRI [o]
+Status: Implemented
 Details: High Dynamic Range Imaging (HDRI) is used for realistic lighting, often with cube maps for environment lighting. The provided resource (DaySkyHDRI013B) is an HDRI texture for skyboxes or image-based lighting (IBL).
 Implementation Guide:
 
@@ -65,6 +65,8 @@ For IBL, precompute:
 
 Irradiance Map: Convolve the HDRI for diffuse lighting.
 Specular Map: Create a prefiltered environment map for specular reflections (split into mip levels for roughness).
+
+Tone Mapping + Gamma Correction : Default is LinearTone Mapping
 
 Tools
 IBLBaker: Use this tool to generate irradiance and specular maps from the HDRI. Integrate these into your shaders.
@@ -102,7 +104,7 @@ Convert mouse coordinates to a 3D ray using the camera¡¯s projection and view 
 Test the ray against object bounding volumes or triangles.
 Example: Use SimpleMath::Ray to perform ray-AABB tests.
 
-### Unreal PBR & Disney []:
+### Unreal PBR []:
 Status: In progress.
 Details: Likely refers to implementing a physically-based rendering (PBR) pipeline similar to Unreal Engine¡¯s, incorporating metallic-roughness workflows, IBL, and effects like Schlick-Fresnel.
 Implementation Guide:

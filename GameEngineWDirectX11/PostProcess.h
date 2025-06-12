@@ -6,8 +6,8 @@ class PostProcess {
   public:
     void Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext> &context,
                     const std::vector<ComPtr<ID3D11ShaderResourceView>> &resources,
-                    const std::vector<ComPtr<ID3D11RenderTargetView>> &targets, const int width,
-                    const int height);
+                    const std::vector<ComPtr<ID3D11RenderTargetView>> &targets, 
+                    const int width, const int height);
 
     void Render(ComPtr<ID3D11DeviceContext> &context);
 
@@ -22,7 +22,7 @@ class PostProcess {
     vector<ImageFilter> m_bloomUpFilters;
 
   private:
-    const int m_bloomLevels = 4;
+    const int m_bloomLevels = 2;
     const float m_bloomStrength = 0.0f;
     const float m_gammaFactor = 2.2f;
     const float m_exposure = 1.0f;

@@ -163,7 +163,7 @@ bool EngineBase::InitMainWindow() {
     wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);  
     wcex.hbrBackground = nullptr;
     wcex.lpszMenuName = nullptr;                     
-    wcex.lpszClassName = L"LunaEngine - DriectX11";             
+    wcex.lpszClassName = L"LunaEngine - DirectX11";             
     wcex.hIconSm = LoadIcon(nullptr, MAKEINTRESOURCE(IDC_ICON));   
     
     if (!RegisterClassEx(&wcex)) {

@@ -85,8 +85,8 @@ void PostProcess::Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceCo
     m_combineFilter.SetShaderResources({resources[0], m_bloomSRVs[0]});
     m_combineFilter.SetRenderTargets(targets);
     m_combineFilter.m_constData.strength = m_bloomStrength; // Bloom strength
-    m_combineFilter.m_constData.option1 = m_exposure;
-    m_combineFilter.m_constData.option2 = m_gammaFactor;
+    m_combineFilter.m_constData.option1 = m_exposure;       // exposure
+    m_combineFilter.m_constData.option2 = m_gammaFactor;    // gamma Factor
     m_combineFilter.UpdateConstantBuffers(device, context);
 }
 
