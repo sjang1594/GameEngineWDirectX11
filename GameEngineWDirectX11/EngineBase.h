@@ -5,6 +5,8 @@
 #include <vector>
 #include <windows.h>
 #include "Camera.h"
+#include "PostProcess.h"
+
 namespace Luna {
 	using Microsoft::WRL::ComPtr;
 	using std::vector;
@@ -33,7 +35,7 @@ namespace Luna {
         bool InitGUI();
 
         void SetViewport();
-        bool CreateRenderTargetView();
+        void CreateBuffers();
 
       public:
         int                              m_guiWidth = 0;
@@ -51,19 +53,37 @@ namespace Luna {
         ComPtr<ID3D11Device>             m_d3dDevice;
         ComPtr<ID3D11DeviceContext>      m_d3dContext;
         ComPtr<IDXGIFactory1>            m_dxgiFactory;
-        ComPtr<ID3D11RenderTargetView>   m_d3dRenderTargetView;
-        ComPtr<ID3D11ShaderResourceView> m_d3dShareResourceView;
         ComPtr<IDXGISwapChain>           m_d3dSwapChain;
-        ComPtr<ID3D11RasterizerState>    m_d3dRasterizerState;
-                                        
-        ComPtr<ID3D11Texture2D>          m_d3dDepthStencilBuffer;
-        ComPtr<ID3D11DepthStencilView>   m_d3dDepthStencilView;
-        ComPtr<ID3D11DepthStencilState>  m_d3dDepthStencilState;
         
+
+        ComPtr<ID3D11RenderTargetView> m_backBufferRTV;
+        ComPtr<ID3D11Texture2D> m_floatBuffer;
+        ComPtr<ID3D11Texture2D> m_resolvedBuffer;
+        ComPtr<ID3D11RenderTargetView> m_floatRTV;
+        ComPtr<ID3D11RenderTargetView> m_resolvedRTV;
+        ComPtr<ID3D11ShaderResourceView> m_floatSRV;
+        ComPtr<ID3D11ShaderResourceView> m_resolvedSRV;
+
+        ComPtr<ID3D11RasterizerState> m_solidRasterizerSate;
+        ComPtr<ID3D11RasterizerState> m_wireframeRasterizerState;
+        
+        // Depth Buffer Related 
+        ComPtr<ID3D11Texture2D> m_d3dDepthStencilBuffer;
+        ComPtr<ID3D11DepthStencilView> m_d3dDepthStencilView;
+        ComPtr<ID3D11DepthStencilState> m_d3dDepthStencilState;
+        
+
+        // Debug
+        bool m_drawNormal = false;
+
         bool m_keyPressed[256] = {
             false,
         };
 
+        PostProcess m_postProcess;
+
+        float m_cursor_ndc_x = 0.0f;
+        float m_cursor_ndc_y = 0.0f;
         std::shared_ptr<Camera> m_camera;
 	};
 }

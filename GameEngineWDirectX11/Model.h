@@ -8,10 +8,13 @@ namespace Luna {
 using namespace std;
 class Model {
   public:
-    void Initialize(ComPtr<ID3D11Device> &device, const std::string &basePath,
+    void Initialize(ComPtr<ID3D11Device> &device, 
+                    ComPtr<ID3D11DeviceContext>& context, 
+                    const std::string &basePath, 
                     const std::string &filename);
 
     void Initialize(ComPtr<ID3D11Device> &device, 
+                    ComPtr<ID3D11DeviceContext>& context, 
                     const std::vector<MeshData> &meshes);
 
     void UpdateConstantBuffers(ComPtr<ID3D11Device> &device, 

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "EngineBase.h"
 #include "Camera.h"
-#include "D3DUtils.h"
+#include "D3D11Utils.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam,
                                                              LPARAM lParam);
@@ -57,7 +57,7 @@ int EngineBase::Run() {
                         ImGui::GetIO().Framerate);
 
             UpdateGUI();
-
+            m_guiWidth = 0;
             ImGui::End();
             ImGui::Render(); 
 
@@ -101,14 +101,17 @@ LRESULT EngineBase::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             m_screenHeight = int(HIWORD(lParam));
             m_guiWidth = 0;
 
-            m_d3dRenderTargetView.Reset();
+            m_backBufferRTV.Reset();
             m_d3dSwapChain->ResizeBuffers(0, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam),
                                           DXGI_FORMAT_UNKNOWN, 0);
-            CreateRenderTargetView();
+
+            CreateBuffers();
             D3D11Utils::CreateDepthBuffer(m_d3dDevice, m_screenWidth, m_screenHeight,
                                           m_numQualityLevels, m_d3dDepthStencilView);
             SetViewport();
             m_camera->SetAspectRatio(this->GetAspectRatio());
+            m_postProcess.Initialize(m_d3dDevice, m_d3dContext, {m_resolvedSRV}, {m_backBufferRTV},
+                                     m_screenWidth, m_screenHeight);
         }
         break;
     case WM_SYSCOMMAND:
@@ -140,12 +143,12 @@ LRESULT EngineBase::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 
 void EngineBase::OnMouseMove(WPARAM btnState, int mouseX, int mouseY) {
-    float x = mouseX * 2.0f / m_screenWidth - 1.0f;
-    float y = -mouseY * 2.0f / m_screenHeight + 1.0f;
+    m_cursor_ndc_x = mouseX * 2.0f / m_screenWidth - 1.0f;
+    m_cursor_ndc_y = -mouseY * 2.0f / m_screenHeight + 1.0f;
 
-    x = std::clamp(x, -1.0f, 1.0f);
-    y = std::clamp(y, -1.0f, 1.0f);
-    m_camera->UpdateMouse(x, y);
+    m_cursor_ndc_x = std::clamp(m_cursor_ndc_x, -1.0f, 1.0f);
+    m_cursor_ndc_y = std::clamp(m_cursor_ndc_y, -1.0f, 1.0f);
+    m_camera->UpdateMouse(m_cursor_ndc_x, m_cursor_ndc_y);
 }
 
 bool EngineBase::InitMainWindow() {
@@ -160,7 +163,7 @@ bool EngineBase::InitMainWindow() {
     wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);  
     wcex.hbrBackground = nullptr;
     wcex.lpszMenuName = nullptr;                     
-    wcex.lpszClassName = L"LunaEngine - DriectX11";             
+    wcex.lpszClassName = L"LunaEngine - DirectX11";             
     wcex.hIconSm = LoadIcon(nullptr, MAKEINTRESOURCE(IDC_ICON));   
     
     if (!RegisterClassEx(&wcex)) {
@@ -171,12 +174,15 @@ bool EngineBase::InitMainWindow() {
     RECT wr = {0, 0, m_screenWidth, m_screenHeight};
     AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, false);
 
-    m_mainWindow = CreateWindow(wcex.lpszClassName, L"LunaEngine Example", WS_OVERLAPPEDWINDOW,
+    m_mainWindow = CreateWindow(wcex.lpszClassName, 
+                                L"LunaEngine Example", 
+                                WS_OVERLAPPEDWINDOW,
                                 100,                // X position
                                 100,                // Y position
                                 wr.right - wr.left, // Window width
                                 wr.bottom - wr.top, // Window height
-                                nullptr, nullptr, wcex.hInstance, nullptr);
+                                nullptr, nullptr, 
+                                wcex.hInstance, nullptr);
 
     if (!m_mainWindow) {
         std::cout << "CreateWindow() failed: LunaEngine Example" << std::endl;
@@ -245,16 +251,11 @@ bool EngineBase::InitD3D() {
     std::cout << "Direct3D 11 device created successfully with feature level: " << featureLevel
               << std::endl;
 
-    m_d3dDevice->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, 4, &m_numQualityLevels);
-
-    if (m_numQualityLevels == 0) {
-        std::cout << "MSAA not supported. Disabling MSAA." << std::endl;
-    }
-
+    // BackBuffer -> Monitor 
     DXGI_SWAP_CHAIN_DESC sd = {};
     sd.BufferDesc.Width = m_screenWidth;
     sd.BufferDesc.Height = m_screenHeight;
-    sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
     sd.BufferDesc.RefreshRate.Numerator = 60;
     sd.BufferDesc.RefreshRate.Denominator = 1;
     // sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT; // Use this as Image Filter 
@@ -263,14 +264,9 @@ bool EngineBase::InitD3D() {
     sd.OutputWindow = m_mainWindow;
     sd.Windowed = TRUE;
     sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-    sd.Flags = m_fullscreen ? DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH : 0;
-    if (m_numQualityLevels > 0) {
-        sd.SampleDesc.Count = 4; // how many multisamples
-        sd.SampleDesc.Quality = m_numQualityLevels - 1;
-    } else {
-        sd.SampleDesc.Count = 1; // how many multisamples
-        sd.SampleDesc.Quality = 0;
-    }
+    sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+    sd.SampleDesc.Count = 1;
+    sd.SampleDesc.Quality = 0;
 
     hr = m_dxgiFactory->CreateSwapChain(m_d3dDevice.Get(), &sd, &m_d3dSwapChain);
     if (FAILED(hr)) {
@@ -278,7 +274,7 @@ bool EngineBase::InitD3D() {
         return false;
     }
     
-    CreateRenderTargetView();
+    CreateBuffers();
 
     SetViewport();
     
@@ -290,20 +286,24 @@ bool EngineBase::InitD3D() {
     rastDesc.FrontCounterClockwise = false;
     rastDesc.DepthClipEnable = true;
 
-    hr = m_d3dDevice->CreateRasterizerState(&rastDesc, &m_d3dRasterizerState);
+    hr = m_d3dDevice->CreateRasterizerState(&rastDesc, &m_solidRasterizerSate);
     if (FAILED(hr)) {
         PrintErrorMessage(hr, "Failed to create Rasterizer State");
         return false;
     }
 
-    hr = m_d3dDevice->CreateRasterizerState(&rastDesc, &m_d3dRasterizerState);
-    if (FAILED(hr)) {
-        PrintErrorMessage(hr, "Failed to create Rasterizer State");
-        return false;
+    if (m_drawNormal) {
+        rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_WIREFRAME;
+
+        hr = m_d3dDevice->CreateRasterizerState(&rastDesc, &m_wireframeRasterizerState);
+        if (FAILED(hr)) {
+            PrintErrorMessage(hr, "Failed to create Rasterizer State");
+            return false;
+        }
     }
 
-    D3D11Utils::CreateDepthBuffer(m_d3dDevice, m_screenWidth, m_screenHeight, m_numQualityLevels,
-                                  m_d3dDepthStencilView);
+    m_postProcess.Initialize(m_d3dDevice, m_d3dContext, {m_resolvedSRV}, {m_backBufferRTV},
+                             m_screenWidth, m_screenHeight);
 
     // Create depth stencil state
     D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
@@ -362,19 +362,57 @@ void EngineBase::SetViewport() {
     }
 }
 
-bool EngineBase::CreateRenderTargetView() {
+void EngineBase::CreateBuffers() {
     ComPtr<ID3D11Texture2D> backBuffer;
-    m_d3dSwapChain->GetBuffer(0, IID_PPV_ARGS(backBuffer.GetAddressOf()));
-    if (backBuffer) {
-        m_d3dDevice->CreateRenderTargetView(backBuffer.Get(), nullptr,
-                                         m_d3dRenderTargetView.GetAddressOf());
-        m_d3dDevice->CreateShaderResourceView(backBuffer.Get(), nullptr,
-                                           m_d3dShareResourceView.GetAddressOf());
-    } else {
-        std::cout << "CreateRenderTargetView() failed." << std::endl;
-        return false;
-    }
-    return true;
-}
+    
+    ThrowIfFailed(m_d3dSwapChain->GetBuffer(0, IID_PPV_ARGS(backBuffer.GetAddressOf())));
+    
+    ThrowIfFailed(m_d3dDevice->CreateRenderTargetView(backBuffer.Get(), nullptr,
+                                                      m_backBufferRTV.GetAddressOf())
+    );
+    
+    ThrowIfFailed(m_d3dDevice->CheckMultisampleQualityLevels(
+        DXGI_FORMAT_R16G16B16A16_FLOAT, 4, &m_numQualityLevels
+    ));
 
+    D3D11_TEXTURE2D_DESC desc;
+    backBuffer->GetDesc(&desc);
+    desc.MipLevels = desc.ArraySize = 1;
+    // desc.BindFlags = D3D11_BIND_RENDER_TARGET
+    desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+    desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    desc.Usage = D3D11_USAGE_DEFAULT;
+    desc.MiscFlags = 0;
+    desc.CPUAccessFlags = 0;
+    if (m_numQualityLevels) {
+        desc.SampleDesc.Count = 4;
+        desc.SampleDesc.Quality = m_numQualityLevels - 1;
+    } else {
+        desc.SampleDesc.Count = 1;
+        desc.SampleDesc.Quality = 0;
+    }
+
+    // Float Buffer -> Resolved Buffer
+    ThrowIfFailed(m_d3dDevice->CreateTexture2D(&desc, NULL, m_floatBuffer.GetAddressOf()));
+
+    ThrowIfFailed(m_d3dDevice->CreateShaderResourceView(m_floatBuffer.Get(), NULL,
+                                                        m_floatSRV.GetAddressOf()));
+
+    ThrowIfFailed(m_d3dDevice->CreateRenderTargetView(m_floatBuffer.Get(), NULL, m_floatRTV.GetAddressOf()));
+
+    D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
+    m_floatRTV->GetDesc(&viewDesc);
+
+    D3D11Utils::CreateDepthBuffer(m_d3dDevice, m_screenWidth, m_screenHeight, m_numQualityLevels,
+                                  m_d3dDepthStencilView);
+
+    // FLOAT MSAA Resolve Buffer for SRV/RTV
+    desc.SampleDesc.Count = 1;
+    desc.SampleDesc.Quality = 0;
+    ThrowIfFailed(m_d3dDevice->CreateTexture2D(&desc, NULL, m_resolvedBuffer.GetAddressOf()));
+    ThrowIfFailed(m_d3dDevice->CreateShaderResourceView(m_resolvedBuffer.Get(), NULL,
+                                                        m_resolvedSRV.GetAddressOf()));
+    ThrowIfFailed(m_d3dDevice->CreateRenderTargetView(m_resolvedBuffer.Get(), NULL,
+                                                      m_resolvedRTV.GetAddressOf()));
+}
 } // namespace Luna

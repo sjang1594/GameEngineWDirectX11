@@ -7,7 +7,7 @@ struct CubeMappingPixelShaderInput
     float3 posModel : POSITION;
 };
 
-float4 main(CubeMappingPixelShaderInput input) : SV_TARGET
+float4 main(CubeMappingPixelShaderInput input) : SV_Target0
 {
     return g_textureCube0.Sample(g_sampler, input.posModel.xyz);
 }
