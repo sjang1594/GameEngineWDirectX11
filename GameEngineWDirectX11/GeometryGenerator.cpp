@@ -3,7 +3,8 @@
 #include "ModelLoader.h"
 
 namespace Luna {
-MeshData GeometryGenerator::MakeSquare(const float scale) {
+
+MeshData GeometryGenerator::MakeSquare(const float scale, const Vector2 texScale) {
     vector<Vector3> positions;
     vector<Vector3> colors;
     vector<Vector3> normals;
@@ -32,11 +33,8 @@ MeshData GeometryGenerator::MakeSquare(const float scale) {
         Vertex v;
         v.position = positions[i];
         v.normal = normals[i];
-        v.texcoord = texcoords[i];
+        v.texcoord = texcoords[i] * texScale;
         v.tangent = Vector3(1.0f, 0.0f, 0.0f);
-
-        // v.color = colors[i];
-
         meshData.vertices.push_back(v);
     }
     meshData.indices = {
@@ -223,12 +221,11 @@ MeshData GeometryGenerator::MakeCylinder(const float bottomRadius, const float t
 }
 
 MeshData GeometryGenerator::MakeSphere(const float radius, const int numSlices,
-                                       const int numStacks) {
+                                       const int numStacks, const Vector2 texScale) {
     const float dTheta = -XM_2PI / float(numSlices);
     const float dPhi = -XM_PI / float(numStacks);
 
     MeshData meshData;
-
     vector<Vertex> &vertices = meshData.vertices;
 
     for (int j = 0; j <= numStacks; j++) {
@@ -242,8 +239,14 @@ MeshData GeometryGenerator::MakeSphere(const float radius, const int numSlices,
 
             v.normal = v.position;
             v.normal.Normalize();
-            v.texcoord = Vector2(float(i) / numSlices, 1.0f - float(j) / numStacks);
-
+            v.texcoord =
+                Vector2(float(i) / numSlices, 1.0f - float(j) / numStacks) * texScale;
+            
+            Vector3 biTangent = Vector3(0.0f, 1.0f, 0.0f);
+            Vector3 orthoNormal = v.normal - biTangent.Dot(v.normal) * v.normal;
+            orthoNormal.Normalize();
+            v.tangent = biTangent.Cross(orthoNormal);
+            v.tangent.Normalize();
             vertices.push_back(v);
         }
     }
