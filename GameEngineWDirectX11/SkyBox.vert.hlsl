@@ -1,6 +1,6 @@
 #include "Common.hlsli"
 
-cbuffer VertexConstantBuffer : register(b0)
+cbuffer CubeMappingVertexConstantData : register(b0)
 {
     matrix viewProj;
 };

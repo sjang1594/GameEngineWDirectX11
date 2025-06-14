@@ -31,8 +31,9 @@ class Model {
     BasicVertexConstantData m_basicVertexConstantData;
     BasicPixelConstantData m_basicPixelConstantData;
 
-    ComPtr<ID3D11ShaderResourceView> m_diffuseResView;
-    ComPtr<ID3D11ShaderResourceView> m_specularResView;
+    ComPtr<ID3D11ShaderResourceView> m_irradianceSRV;
+    ComPtr<ID3D11ShaderResourceView> m_specularSRV;
+    ComPtr<ID3D11ShaderResourceView> m_brdfSRV;
 
     NormalVertexConstantData m_normalVertexConstantData;
     
@@ -43,7 +44,8 @@ class Model {
     ComPtr<ID3D11PixelShader> m_basicPixelShader;
     ComPtr<ID3D11InputLayout> m_basicInputLayout;
 
-    ComPtr<ID3D11SamplerState> m_samplerState;
+    ComPtr<ID3D11SamplerState> m_linearSamplerState;
+    ComPtr<ID3D11SamplerState> m_clmapSamplerState;
 
     ComPtr<ID3D11Buffer> m_vertexConstantBuffer;
     ComPtr<ID3D11Buffer> m_pixelConstantBuffer;

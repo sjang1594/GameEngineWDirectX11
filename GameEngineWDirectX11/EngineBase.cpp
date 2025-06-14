@@ -280,7 +280,7 @@ bool EngineBase::InitD3D() {
     
     // Create Rasterizer State
     D3D11_RASTERIZER_DESC rastDesc;
-    ZeroMemory(&rastDesc, sizeof(D3D11_RASTERIZER_DESC)); // Need this
+    ZeroMemory(&rastDesc, sizeof(D3D11_RASTERIZER_DESC));
     rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
     rastDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
     rastDesc.FrontCounterClockwise = false;

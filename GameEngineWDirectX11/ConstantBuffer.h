@@ -21,7 +21,7 @@ static_assert((sizeof(BasicVertexConstantData) % 16) == 0,
 struct BasicPixelConstantData {
     Vector3 eyeWorld;          // 12
     float dummy1;              // 4
-    Material material;         // 64 
+    Material material;         // 64
     Light lights[MAX_LIGHTS];  // 48 * MAX_LIGHTS
     int reverseNormalMapY = 0; // 4
     float heightScale;         // 4
@@ -54,4 +54,21 @@ struct ImageFilterConstantData {
 static_assert((sizeof(ImageFilterConstantData) % 16) == 0,
               "Constant Buffer size must be 16-byte aligned");
 
+/* This is for skybox */
+struct CubeMappingVertexConstantData {
+    Matrix viewProj;
+};
+
+static_assert((sizeof(CubeMappingVertexConstantData) % 16) == 0,
+              "Constant Buffer size must be 16-byte aligned");
+
+struct CubeMappingPixelConstantData {
+    int textureToDraw = 0; // 0: Env, 1: Specular, 2: Irridiance
+    float mipLevel = 0.0f;
+    float dummy1;
+    float dummy2;
+};
+
+static_assert((sizeof(CubeMappingPixelConstantData) % 16) == 0,
+              "Constant Buffer size must be 16-byte aligned");
 } // namespace Luna

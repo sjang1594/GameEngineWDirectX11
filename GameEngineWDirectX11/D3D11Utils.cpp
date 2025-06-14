@@ -249,23 +249,16 @@ void D3D11Utils::CreateTextureArray(ComPtr<ID3D11Device> &device,
     context->GenerateMips(textureResourceView.Get());
 }
 
-void D3D11Utils::CreateCubemapTexture(ComPtr<ID3D11Device> &device, const wchar_t *filename,
-                                      ComPtr<ID3D11ShaderResourceView> &textureResourceView) {
-
+void D3D11Utils::CreateDDSTexture(ComPtr<ID3D11Device> &device, const wchar_t *filename,
+                                  const bool bIsCubeMap,
+                                  ComPtr<ID3D11ShaderResourceView> &textureResourceView) {
     ComPtr<ID3D11Texture2D> texture;
 
     // https://github.com/microsoft/DirectXTK/wiki/DDSTextureLoader
-    auto hr = CreateDDSTextureFromFileEx(
-        device.Get(), filename, 0, D3D11_USAGE_DEFAULT, 
-        D3D11_BIND_SHADER_RESOURCE, 0, 
-        D3D11_RESOURCE_MISC_TEXTURECUBE,
-        DDS_LOADER_FLAGS(false), (ID3D11Resource **)texture.GetAddressOf(),
-        textureResourceView.GetAddressOf(), nullptr);
-
-    if (FAILED(hr)) {
-        std::wcout << L"filename: " << filename << std::endl;
-        std::cout << "CreateDDSTextureFromFileEx() failed" << std::endl;
-    }
+    ThrowIfFailed(CreateDDSTextureFromFileEx(
+        device.Get(), filename, 0, D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0,
+        D3D11_RESOURCE_MISC_TEXTURECUBE, DDS_LOADER_FLAGS(false),
+        (ID3D11Resource **)texture.GetAddressOf(), textureResourceView.GetAddressOf(),
+        nullptr));
 }
-
 } // namespace Luna

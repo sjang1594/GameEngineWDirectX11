@@ -7,7 +7,7 @@ void PostProcess::Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceCo
                              const std::vector<ComPtr<ID3D11RenderTargetView>> &targets,
                              const int width, const int height) {
 
-    MeshData meshData = GeometryGenerator::MakeSquare();
+    MeshData meshData = GeometryGenerator::MakeSquare(1.0f, {1.0f, 1.0f});
     m_mesh = std::make_shared<Mesh>();
     D3D11Utils::CreateVertexBuffer(device, meshData.vertices, m_mesh->m_vertexBuffer);
     m_mesh->m_indexCount = UINT(meshData.indices.size());

@@ -6,6 +6,9 @@
 #define NUM_POINT_LIGHTS 1
 #define NUM_SPOT_LIGHTS 1
 
+static const float PI = 3.14159265f;
+static const float EPSILON = 1e-6f;
+
 struct Material
 {
     float3 ambient;
@@ -20,7 +23,7 @@ struct Material
 
 struct Light
 {
-    float3 strength;
+    float3 radiance;
     float fallOffStart;
     float3 direction;
     float fallOffEnd;
@@ -42,7 +45,7 @@ float3 ComputeDirectionalLight(Light L, Material mat, float3 normal, float3 toEy
 {
     float3 lightVec = -L.direction;
     float ndotl = max(dot(lightVec, normal), 0.0f);
-    float3 lightStrength = L.strength * ndotl;
+    float3 lightStrength = L.radiance * ndotl;
     return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
 }
 
@@ -63,7 +66,7 @@ float3 ComputePointLight(Light L, Material mat, float3 pos, float3 normal, float
     {
         lightVec /= distance;
         float ndotl = max(dot(lightVec, normal), 0.0f);
-        float3 lightStrength = L.strength * ndotl;
+        float3 lightStrength = L.radiance * ndotl;
         float attenuationFactor = CalcAttenuation(distance, L.fallOffStart, L.fallOffEnd);
         lightStrength *= attenuationFactor;
         return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
@@ -83,7 +86,7 @@ float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3
     {
         lightVec /= distance;
         float ndotl = max(dot(lightVec, normal), 0.0f);
-        float3 lightStrength = L.strength * ndotl;
+        float3 lightStrength = L.radiance * ndotl;
         
         float attenuationFactor = CalcAttenuation(distance, L.fallOffStart, L.fallOffEnd);
         lightStrength *= attenuationFactor;
