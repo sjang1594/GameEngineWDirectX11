@@ -15,7 +15,7 @@ using DirectX::SimpleMath::Vector3;
 using DirectX::SimpleMath::Vector4;
 
 struct Light {
-    Vector3 strength = Vector3(1.0f);              // 12
+    Vector3 radiance = Vector3(0.0f);              // 12
     float fallOffStart = 0.0f;                     // 4
     Vector3 direction = Vector3(0.0f, 0.0f, 1.0f); // 12
     float fallOffEnd = 10.0f;                      // 4

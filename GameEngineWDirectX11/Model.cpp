@@ -15,16 +15,21 @@ void Model::Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext>
 void Model::Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext> &context,
                        const std::vector<MeshData> &meshes) {
 
-    D3D11_SAMPLER_DESC sampDesc;
-    ZeroMemory(&sampDesc, sizeof(sampDesc));
-    sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-    sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-    sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-    sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-    sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-    sampDesc.MinLOD = 0;
-    sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-    device->CreateSamplerState(&sampDesc, m_samplerState.GetAddressOf());
+    D3D11_SAMPLER_DESC samplerDesc;
+    ZeroMemory(&samplerDesc, sizeof(samplerDesc));
+    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    samplerDesc.MinLOD = 0;
+    samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+    device->CreateSamplerState(&samplerDesc, m_linearSamplerState.GetAddressOf());
+
+    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+    device->CreateSamplerState(&samplerDesc, m_clmapSamplerState.GetAddressOf());
 
     m_basicVertexConstantData.model = Matrix();
     m_basicVertexConstantData.view = Matrix();
@@ -43,8 +48,8 @@ void Model::Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext>
         // Color (Albedo) Map
         if (!meshData.albedoTextureFilename.empty()) {
             std::cout << "Loading albedo texture: " << meshData.albedoTextureFilename << std::endl;
-            D3D11Utils::CreateTexture(device, context, meshData.albedoTextureFilename, true,
-                                      newMesh->m_albedoTexture, newMesh->m_albedoTextureResourceView);
+            D3D11Utils::CreateTexture(device, context, meshData.albedoTextureFilename, true, newMesh->m_albedoTexture,
+                                      newMesh->m_albedoTextureSRV);
         }
 
         // Normal Map
@@ -52,7 +57,7 @@ void Model::Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext>
             std::cout << "Loading normal texture: " << meshData.normalTextureFilename << std::endl;
             D3D11Utils::CreateTexture(device, context, meshData.normalTextureFilename, false,
                                       newMesh->m_normalTexture,
-                                      newMesh->m_normalTextureResourceView);
+                                      newMesh->m_normalTextureSRV);
         }
 
         // Height Map
@@ -60,15 +65,14 @@ void Model::Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext>
             std::cout << "Loading height texture: " << meshData.heightTextureFilename << std::endl;
             D3D11Utils::CreateTexture(device, context, meshData.heightTextureFilename, false,
                                       newMesh->m_heightTexture,
-                                      newMesh->m_heightTextureResourceView);
+                                      newMesh->m_heightTextureSRV);
         }
 
         // Ambient Occlusion Map
         if (!meshData.aoTextureFilename.empty()) {
             std::cout << "Loading AO texture: " << meshData.aoTextureFilename << std::endl;
             D3D11Utils::CreateTexture(device, context, meshData.aoTextureFilename, false, 
-                                      newMesh->m_aoTexture,
-                                      newMesh->m_aoTextureResourceView);
+                                      newMesh->m_aoTexture, newMesh->m_aoTextureSRV);
         }
 
         // Roughness Map
@@ -77,7 +81,16 @@ void Model::Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext>
                       << std::endl;
             D3D11Utils::CreateTexture(device, context, meshData.roughnessTextureFilename, false,
                                       newMesh->m_roughnessTexture,
-                                      newMesh->m_roughnessTextureResourceView);
+                                      newMesh->m_roughnessTextureSRV);
+        }
+
+        // Metalic Map
+        if (!meshData.metalicTextureFilename.empty()) {
+            std::cout << "Loading metalic texture: " << meshData.metalicTextureFilename
+                      << std::endl;
+            D3D11Utils::CreateTexture(device, context, meshData.metalicTextureFilename,
+                                      false, newMesh->m_metalicTexture,
+                                      newMesh->m_metalicTextureSRV);
         }
 
         newMesh->m_vertexConstantBuffer = m_vertexConstantBuffer;
@@ -113,14 +126,22 @@ void Model::Render(ComPtr<ID3D11DeviceContext> &context) {
         context->VSSetShader(m_basicVertexShader.Get(), 0, 0);
         context->VSSetConstantBuffers(0, 1, mesh->m_vertexConstantBuffer.GetAddressOf());
         
-        context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
+        vector<ID3D11SamplerState *> samplerStates = {m_linearSamplerState.Get(),
+                                                      m_clmapSamplerState.Get()};
+
+        context->PSSetSamplers(0, UINT(samplerStates.size()), samplerStates.data());
         context->PSSetShader(m_basicPixelShader.Get(), 0, 0);
 
-        vector<ID3D11ShaderResourceView *> resViews = {
-            nullptr, nullptr,
-            mesh->m_albedoTextureResourceView.Get(), mesh->m_normalTextureResourceView.Get(),
-            mesh->m_heightTextureResourceView.Get(), mesh->m_aoTextureResourceView.Get(),
-            mesh->m_roughnessTextureResourceView.Get()};
+        // Align
+        vector<ID3D11ShaderResourceView *> resViews = {m_specularSRV.Get(),
+                                                       m_irradianceSRV.Get(),
+                                                       m_brdfSRV.Get(),
+                                                       mesh->m_albedoTextureSRV.Get(),
+                                                       mesh->m_normalTextureSRV.Get(),
+                                                       mesh->m_heightTextureSRV.Get(),
+                                                       mesh->m_aoTextureSRV.Get(),
+                                                       mesh->m_roughnessTextureSRV.Get(),
+                                                       mesh->m_metalicTextureSRV.Get()};
 
         context->PSSetShaderResources(0, UINT(resViews.size()), resViews.data());
 
