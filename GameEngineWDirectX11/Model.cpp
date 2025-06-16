@@ -93,6 +93,14 @@ void Model::Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext>
                                       newMesh->m_metalicTextureSRV);
         }
 
+        if (!meshData.emissiveTextureFilename.empty()) {
+            std::cout << "Loading emssive texture: " << meshData.emissiveTextureFilename
+                      << std::endl;
+            D3D11Utils::CreateTexture(device, context, meshData.emissiveTextureFilename,
+                                      false, newMesh->m_emissiveTexture,
+                                      newMesh->m_emissiveTextureSRV);
+        }
+
         newMesh->m_vertexConstantBuffer = m_vertexConstantBuffer;
         newMesh->m_pixelConstantBuffer = m_pixelConstantBuffer;
 
@@ -141,7 +149,8 @@ void Model::Render(ComPtr<ID3D11DeviceContext> &context) {
                                                        mesh->m_heightTextureSRV.Get(),
                                                        mesh->m_aoTextureSRV.Get(),
                                                        mesh->m_roughnessTextureSRV.Get(),
-                                                       mesh->m_metalicTextureSRV.Get()};
+                                                       mesh->m_metalicTextureSRV.Get(),
+                                                       mesh->m_emissiveTextureSRV.Get()};
 
         context->PSSetShaderResources(0, UINT(resViews.size()), resViews.data());
 

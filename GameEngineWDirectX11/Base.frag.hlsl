@@ -11,6 +11,7 @@ Texture2D g_heightTexture : register(t5);
 Texture2D g_aoTexture : register(t6);
 Texture2D g_metalicTexture : register(t7);
 Texture2D g_roughnessTexture : register(t8);
+Texture2D g_emissiveTexture : register(t9);
 
 SamplerState g_linearSampler : register(s0);
 SamplerState g_clampSampler : register(s1);
@@ -195,6 +196,7 @@ PixelShaderOutput main(PixelShaderInput input)
     float ao = g_aoTexture.SampleLevel(g_linearSampler, parallaxUV, lod).r;
     float roughness = g_roughnessTexture.SampleLevel(g_linearSampler, parallaxUV, lod).r;
     float metalic = g_metalicTexture.SampleLevel(g_linearSampler, parallaxUV, lod).r;
+    float emissive = g_emissiveTexture.SampleLevel(g_linearSampler, parallaxUV, lod).rgb;
     
     float3 normalWorld = normalize(mul(normalTex, TBN));
     
@@ -233,6 +235,6 @@ PixelShaderOutput main(PixelShaderInput input)
     //}
     
     PixelShaderOutput output;
-    output.pixelColor = float4(ambientLighting + directLighting, 1.0);
+    output.pixelColor = float4(ambientLighting + directLighting + emissive, 1.0);
     return output;
 }

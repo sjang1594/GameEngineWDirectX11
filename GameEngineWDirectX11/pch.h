@@ -34,7 +34,9 @@
 #include <dxgi1_4.h>
 #include <DirectXMath.h>
 #include <DirectXColors.h>
+#include <DirectXMesh.h>
 #include <d3dcompiler.h>
+#include <directxtk/DDSTextureLoader.h>
 
 #include <iostream>
 #include <algorithm>
@@ -55,5 +57,3 @@
 #include <comdef.h>
 #include <assimp\Importer.hpp>
 #include <assimp\postprocess.h>
-
-#include <directxtk/DDSTextureLoader.h>

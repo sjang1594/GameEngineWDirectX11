@@ -15,14 +15,15 @@ bool App::Initialize() {
                              L"../Assets/Cubemaps/NightSky_0/NightSky_0SpecularHDR.dds", 
                              L"../Assets/Cubemaps/NightSky_0/NightSky_0Brdf.dds");
     
-    // TODO: Load the Terrain First
-    // TODO: This parallax occlusion should be building or cave
+    // Make this from Scene Loader
+    // TODO: Load the Terrain Firstr cave
     {
         MeshData ground = GeometryGenerator::MakeSquare(1.0f, {1.0f, 1.0f});
         // ground.albedoTextureFilename =
         //     "../Assets/Textures/Ground/Grass007_4K-JPG/Grass007_4K-JPG_Color.jpg";
         // ground.normalTextureFilename =
-        //     "../Assets/Textures/Ground/Grass007_4K-JPG/Grass007_4K-JPG_NormalDX.jpg";
+        //     "../Assets/Textures/Ground/Grass
+    // TODO: This parallax occlusion should be building o007_4K-JPG/Grass007_4K-JPG_NormalDX.jpg";
         // ground.aoTextureFilename =
         //     "../Assets/Textures/Ground/Grass007_4K-JPG/Grass007_4K-JPG_AmbientOcclusion.jpg";
         // ground.heightTextureFilename =
@@ -51,11 +52,16 @@ bool App::Initialize() {
         m_groundModel.UpdateConstantBuffers(m_d3dDevice, m_d3dContext);
     }
 
-    // TODO: Load Model or Building
+    // TODO: Load Building
     {
         Vector3 center(0.0f, 0.0f, 0.0f);
         float radius = 0.4f;
         MeshData sphere = GeometryGenerator::MakeSphere(radius, 100, 100, {2.0f, 2.0f});
+    }
+
+    // Model
+    {
+
     }
 
     return true; 
