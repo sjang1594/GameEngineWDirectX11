@@ -408,40 +408,51 @@ MeshData GeometryGenerator::SubdivideToSphere(const float radius, MeshData meshD
 
     return newMesh;
 }
+
+void GeometryGenerator::ComputeBoundingBox(const vector<MeshData> &meshes, Vector3 &vmin,
+                                           Vector3 &vmax) {
+    vmin = Vector3(std::numeric_limits<float>::max());
+    vmax = Vector3(std::numeric_limits<float>::lowest());
+
+    std::cout << vmin.x << vmin.y << vmin.z << endl;
+    std::cout << vmax.x << vmax.y << vmax.z << endl;
+
+    for (auto &mesh : meshes) {
+        for (auto &v : mesh.vertices) {
+            vmin.x = std::min(vmin.x, v.position.x);
+            vmin.y = std::min(vmin.y, v.position.y);
+            vmin.z = std::min(vmin.z, v.position.z);
+            vmax.x = std::max(vmax.x, v.position.x);
+            vmax.y = std::max(vmax.y, v.position.y);
+            vmax.z = std::max(vmax.z, v.position.z);
+        }
+    }
+}
+
+void GeometryGenerator::NormalizeMeshes(vector<MeshData> &meshes, const Vector3 &center,
+                                        float scale) {
+    for (auto &mesh : meshes) {
+        for (auto &v : mesh.vertices) {
+            v.position = (v.position - center) / scale;
+        }
+    }
+}
+
 vector<MeshData> GeometryGenerator::ReadFromFile(std::string basePath, std::string filename) {
-
-    using namespace DirectX;
-
     ModelLoader modelLoader;
     modelLoader.Load(basePath, filename);
     vector<MeshData> &meshes = modelLoader.m_meshes;
 
-    // Normalize vertices
-    Vector3 vmin(1000, 1000, 1000);
-    Vector3 vmax(-1000, -1000, -1000);
-    for (auto &mesh : meshes) {
-        for (auto &v : mesh.vertices) {
-            vmin.x = XMMin(vmin.x, v.position.x);
-            vmin.y = XMMin(vmin.y, v.position.y);
-            vmin.z = XMMin(vmin.z, v.position.z);
-            vmax.x = XMMax(vmax.x, v.position.x);
-            vmax.y = XMMax(vmax.y, v.position.y);
-            vmax.z = XMMax(vmax.z, v.position.z);
-        }
-    }
+    Vector3 vmin, vmax;
+    ComputeBoundingBox(meshes, vmin, vmax);
 
-    float dx = vmax.x - vmin.x, dy = vmax.y - vmin.y, dz = vmax.z - vmin.z;
-    float dl = XMMax(XMMax(dx, dy), dz);
-    float cx = (vmax.x + vmin.x) * 0.5f, cy = (vmax.y + vmin.y) * 0.5f,
-          cz = (vmax.z + vmin.z) * 0.5f;
+    const Vector3 center = (vmin + vmax) * 0.5f;
+    const float maxExtent = std::max({vmax.x - vmin.x, vmax.y - vmin.y, vmax.z - vmin.z});
+    
+    if (maxExtent <= 0.0f)
+        return meshes;
 
-    for (auto &mesh : meshes) {
-        for (auto &v : mesh.vertices) {
-            v.position.x = (v.position.x - cx) / dl;
-            v.position.y = (v.position.y - cy) / dl;
-            v.position.z = (v.position.z - cz) / dl;
-        }
-    }
+    NormalizeMeshes(meshes, center, maxExtent);
 
     return meshes;
 }
