@@ -15,7 +15,7 @@ To set up a DirectX11 project, follow the DirectXTK documentation for creating a
 * Use Vcpkg
 
 ## Project CheckPoint:
-It's important to figure out what to implement and the ideas are coming from the the image below 
+It's important to figure out what to implement, and the ideas are coming from the image below 
 
 <img src="Misc/jaKUP.png" alt="jaKUP" width="50%">
 
@@ -104,7 +104,7 @@ Convert mouse coordinates to a 3D ray using the camera¡¯s projection and view 
 Test the ray against object bounding volumes or triangles.
 Example: Use SimpleMath::Ray to perform ray-AABB tests.
 
-### Unreal PBR []:
+### Unreal PBR [o]:
 Status: In progress.
 Details: Likely refers to implementing a physically-based rendering (PBR) pipeline similar to Unreal Engine¡¯s, incorporating metallic-roughness workflows, IBL, and effects like Schlick-Fresnel.
 Implementation Guide:
