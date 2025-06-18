@@ -9,7 +9,7 @@ struct GeometryShaderInput
 GeometryShaderInput main(VertexShaderInput input)
 {
     GeometryShaderInput output;
-    output.posModel = float4(input.posModel, 1.0f);
+    output.posModel = float4(input.posModel, 1.0);
     output.normalW = input.normalModel;
     return output;
 }

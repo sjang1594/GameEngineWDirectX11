@@ -30,14 +30,14 @@ void main(point GeometryShaderInput input[1], inout LineStream<PixelShaderInput>
     float4 posW = mul(input[0].posModel, modelWorld);
     float4 normalModel = float4(input[0].normalModel, 0.0);
     float4 normalW = mul(normalModel, invTranspose);
-    normalW = float4(normalize(normalW.xyz), 0.0);
     
+    normalW = float4(normalize(normalW.xyz), 0.0);
     output.pos = mul(posW, view);
-    output.pos = mul(posW, projection);
+    output.pos = mul(output.pos, projection);
     output.color = float3(1.0, 1.0, 0.0);
     outputStream.Append(output);
-    
-    output.pos = mul(posW * 0.1 * scale * normalW, view);
+   
+    output.pos = mul(posW + 0.1 * scale * normalW, view);
     output.pos = mul(output.pos, projection);
     output.color = float3(1.0, 0.0, 0.0);
     outputStream.Append(output);
