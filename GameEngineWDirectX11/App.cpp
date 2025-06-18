@@ -48,8 +48,9 @@ bool App::Initialize() {
         m_groundModel.m_specularSRV = m_cubeMapping.m_specularSRV;
         m_groundModel.m_brdfSRV = m_cubeMapping.m_brdfSRV;
         m_groundModel.UpdateModelWorld(Matrix::CreateRotationX(DirectX::XM_PIDIV2));
-        m_groundModel.m_basicPixelConstantData.reverseNormalMapY =
-            false; // IF OPENGL, SET TRUE
+        m_groundModel.m_basicPixelConstantData.reverseNormalMapY = false; // IF OPENGL, SET TRUE
+        m_groundModel.m_basicPixelConstantData.isGLTF = false;
+        m_groundModel.m_basicPixelConstantData.isParallax = true;
         m_groundModel.UpdateConstantBuffers(m_d3dDevice, m_d3dContext);
     }
 
@@ -65,8 +66,9 @@ bool App::Initialize() {
         Vector3 center(0.0f, 0.5f, 0.0f);
         auto mainCharacterMesh = GeometryGenerator::ReadFromFile(
             "../Assets/Characters/medieval_vagrant_knights/", "scene.gltf");
-
         m_mainCharacter.m_basicPixelConstantData.reverseNormalMapY = true;
+        m_mainCharacter.m_basicPixelConstantData.isGLTF = true;
+        m_mainCharacter.m_basicPixelConstantData.isParallax = false;
         m_mainCharacter.Initialize(m_d3dDevice, m_d3dContext, mainCharacterMesh);
         m_mainCharacter.m_irradianceSRV = m_cubeMapping.m_diffuseSRV;
         m_mainCharacter.m_specularSRV = m_cubeMapping.m_specularSRV;

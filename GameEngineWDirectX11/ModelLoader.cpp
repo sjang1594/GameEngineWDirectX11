@@ -16,7 +16,7 @@ void ModelLoader::Load(std::string basePath, std::string filename) {
                       aiProcess_OptimizeMeshes | aiProcess_GenSmoothNormals |
                       aiProcess_ValidateDataStructure);
 
-    if (!pScene || !pScene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !pScene->mRootNode) {
+    if (!pScene || !pScene->mRootNode) {
         std::cerr << "[Model Loader] Failed to load: " << fullPath << "\n";
         std::cerr << "[Assimp] " << importer.GetErrorString() << "\n";
         return;

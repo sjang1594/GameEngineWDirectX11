@@ -25,7 +25,8 @@ struct BasicPixelConstantData {
     Light lights[MAX_LIGHTS];  // 48 * MAX_LIGHTS
     int reverseNormalMapY = 0; // 4
     float heightScale;         // 4
-    float dummy2[2];           // 8
+    int isParallax = 0;        // 4 0 (false), 1 (true)
+    int isGLTF = 1;            // 4 0 (false), 1 (true)
 };
 
 static_assert((sizeof(BasicPixelConstantData) % 16) == 0,
