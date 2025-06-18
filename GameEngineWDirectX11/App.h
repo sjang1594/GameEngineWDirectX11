@@ -7,7 +7,6 @@ namespace Luna {
 	class App : public EngineBase {
       public:
         App();
-
 		virtual bool Initialize() override;
         virtual void UpdateGUI() override;
         virtual void Update(float dt) override;
@@ -17,6 +16,14 @@ namespace Luna {
       protected:
         // Don't use shared_ptr.
         Model m_groundModel;
+        
+        // Monster
+        Model m_darkSoul;
+        Model m_valak;
+
+        // Main Character - medival-vagrant
+        Model m_mainCharacter;
+
         CubeMapping m_cubeMapping;
         Light m_pointLight;
         Vector3 m_lightPosition = Vector3(0.0f, 1.0f, 0.0f);

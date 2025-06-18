@@ -31,5 +31,12 @@ class GeometryGenerator {
     static MeshData MakeTetrahedron();
     static MeshData MakeIcosahedron();
     static MeshData SubdivideToSphere(const float radius, MeshData meshData);
+
+  private:
+    static void ComputeBoundingBox(const vector<MeshData> &meshes, Vector3 &vmin,
+                                   Vector3 &vmax);
+    
+    static void NormalizeMeshes(vector<MeshData> &meshes, const Vector3 &center,
+                                float scale);
 };
 } // namespace Luna

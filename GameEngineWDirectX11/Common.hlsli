@@ -109,9 +109,9 @@ struct PixelShaderInput
 {
     float4 posProj : SV_POSITION; // Screen Pos
     float3 posWorld : POSITION;   // World Position
-    float3 normalWorld : NORMAL0;
+    float3 normalW : NORMAL0;
     float2 texcoord : TEXCOORD;
-    float3 tangentWorld : TANGENT0;
+    float3 tangentW : TANGENT0;
     float3 color : COLOR;
 };
 

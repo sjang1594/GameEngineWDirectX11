@@ -23,13 +23,13 @@ PixelShaderInput main(VertexShaderInput input) {
 
     // Normal
     float4 normal = float4(input.normalModel, 0.0f);
-    output.normalWorld = mul(normal, invTranspose);
-    output.normalWorld = normalize(output.normalWorld);
+    output.normalW = mul(normal, invTranspose);
+    output.normalW = normalize(output.normalW);
     
     // Tangent
     float4 tangent = float4(input.tangentWorld, 0.0f); // tangent in world
     tangent = mul(tangent, model);
-    output.tangentWorld = tangent.xyz;
+    output.tangentW = tangent.xyz;
     
     output.color = float3(0.0f, 0.0f, 0.0f);
     return output;

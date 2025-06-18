@@ -98,6 +98,26 @@ void D3D11Utils::CreatePixelShader(ComPtr<ID3D11Device> &device, const wstring &
                               &m_pixelShader);
 }
 
+void D3D11Utils::CreateGeometryShader(ComPtr<ID3D11Device> &device,
+                                      const wstring &filename,
+                                      ComPtr<ID3D11GeometryShader> &m_geometryShader) {
+    ComPtr<ID3DBlob> shaderBlob;
+    ComPtr<ID3DBlob> errorBlob;
+
+    UINT compileFlags = 0;
+#if defined(DEBUG) || defined(_DEBUG)
+    compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+
+    HRESULT hr =
+        D3DCompileFromFile(filename.c_str(), 0, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main",
+                           "gs_5_0", compileFlags, 0, &shaderBlob, &errorBlob);
+
+    CheckResult(hr, errorBlob.Get());
+    device->CreateGeometryShader(shaderBlob->GetBufferPointer(),
+                                 shaderBlob->GetBufferSize(), NULL, &m_geometryShader);
+#endif
+}
+
 void D3D11Utils::CreateIndexBuffer(ComPtr<ID3D11Device> &device,
                                    const std::vector<uint32_t> &indices,
                                    ComPtr<ID3D11Buffer> &indexBuffer) {
@@ -132,7 +152,7 @@ ComPtr<ID3D11Texture2D> CreateStagingTexture(ComPtr<ID3D11Device> &device, ComPt
     txtDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;
 
     ComPtr<ID3D11Texture2D> stagingTexture;
-    ThrowIfFailed(device->CreateTexture2D(&txtDesc, nullptr, stagingTexture.GetAddressOf()));
+    ThrowIfFailed(device->CreateTexture2D(&txtDesc, NULL, stagingTexture.GetAddressOf()));
 
     size_t pixelSize = sizeof(uint8_t) * 4;
     if (pixelFormat == DXGI_FORMAT_R16G16B16A16_FLOAT) {

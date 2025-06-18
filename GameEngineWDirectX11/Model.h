@@ -36,7 +36,9 @@ class Model {
     ComPtr<ID3D11ShaderResourceView> m_brdfSRV;
 
     NormalVertexConstantData m_normalVertexConstantData;
-    
+    bool m_drawNormals = false;
+    bool m_drawNormalsDirtyFlags = true;
+ 
   private:
     std::vector<shared_ptr<Mesh>> m_meshes;
 
@@ -52,9 +54,8 @@ class Model {
 
     ComPtr<ID3D11VertexShader> m_normalVertexShader;
     ComPtr<ID3D11PixelShader> m_normalPixelShader;
-
-    ComPtr<ID3D11Buffer> m_normalVertexConstantBuffer;
-    ComPtr<ID3D11Buffer> m_normalPixelConstantBuffer;
+    ComPtr<ID3D11GeometryShader> m_normalGeometryShader;
+    ComPtr<ID3D11Buffer> m_normalConstantBuffer;
 };
 
 } // namespace Luna

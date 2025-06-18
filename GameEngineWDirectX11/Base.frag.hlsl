@@ -9,8 +9,9 @@ Texture2D g_albedoTexture : register(t3);
 Texture2D g_normalTexture : register(t4);
 Texture2D g_heightTexture : register(t5);
 Texture2D g_aoTexture : register(t6);
-Texture2D g_metalicTexture : register(t7);
+Texture2D g_metallicTexture : register(t7);
 Texture2D g_roughnessTexture : register(t8);
+Texture2D g_emissiveTexture : register(t9);
 
 SamplerState g_linearSampler : register(s0);
 SamplerState g_clampSampler : register(s1);
@@ -23,7 +24,8 @@ cbuffer BasicPixelConstantData : register(b0)
     Light light[MAX_LIGHTS];
     int reverseNormalMapY;
     int heightScale;
-    float2 dummy2;
+    int isParallax;
+    int isGLTF;
 }
 
 // fresnelR0
@@ -47,27 +49,27 @@ float3 SchlickFresnel(float3 F0, float3 normal, float3 toEye)
     return F0 + (1.0f - F0) * pow(1 - cosTheta, 5.0f);
 }
 
-float3 SpecularIBL(float3 albedo, float3 normalWorld, float3 pixelToEye, float metallic, float roughness)
+float3 SpecularIBL(float3 albedo, float3 normalW, float3 pixelToEye, float metallic, float roughness)
 {
-    float2 specularBRDF = g_brdfTex.Sample(g_clampSampler, float2(dot(normalWorld, pixelToEye), 1.0 - roughness)).rg;
-    float3 specularIrradiance = g_specularIBLTex.SampleLevel(g_linearSampler, reflect(-pixelToEye, normalWorld), roughness * 5.0f).rgb;
+    float2 specularBRDF = g_brdfTex.Sample(g_clampSampler, float2(dot(normalW, pixelToEye), 1.0 - roughness)).rg;
+    float3 specularIrradiance = g_specularIBLTex.SampleLevel(g_linearSampler, reflect(-pixelToEye, normalW), roughness * 5.0f).rgb;
     float3 F0 = lerp(Fdielectric, albedo, metallic);
     return (F0 * specularBRDF.r + specularBRDF.g) * specularIrradiance;
 }
 
-float3 DiffuseIBL(float3 albedo, float3 normalWorld, float3 pixelToEye, float3 metallic, float roughness)
+float3 DiffuseIBL(float3 albedo, float3 normalW, float3 pixelToEye, float3 metallic, float roughness)
 {
     float3 F0 = lerp(Fdielectric, albedo, metallic);
-    float3 F = SchlickFresnelUnrealOld(F0, max(0.0, dot(normalWorld, pixelToEye)));
+    float3 F = SchlickFresnelUnrealOld(F0, max(0.0, dot(normalW, pixelToEye)));
     float3 kd = lerp(1.0 - F, 0.0, metallic);
-    float3 irradiance = g_irradianceIBLTex.Sample(g_linearSampler, normalWorld).rgb;
+    float3 irradiance = g_irradianceIBLTex.Sample(g_linearSampler, normalW).rgb;
     return kd * albedo * irradiance;
 }
 
-float3 AmbientLightingIBL(float3 albedo, float3 normalWorld, float3 pixelToEye, float ao, float metallic, float roughness)
+float3 AmbientLightingIBL(float3 albedo, float3 normalW, float3 pixelToEye, float ao, float metallic, float roughness)
 {
-    float3 specularIBL = SpecularIBL(albedo, normalWorld, pixelToEye, metallic, roughness);
-    float3 diffuseIBL = DiffuseIBL(albedo, normalWorld, pixelToEye, metallic, roughness);
+    float3 specularIBL = SpecularIBL(albedo, normalW, pixelToEye, metallic, roughness);
+    float3 diffuseIBL = DiffuseIBL(albedo, normalW, pixelToEye, metallic, roughness);
     return (specularIBL + diffuseIBL) * ao;
 }
 
@@ -103,12 +105,64 @@ uint querySpecularTextureLevels()
     return levels;
 }
 
+// Material Params
+float3 SampleAlbedo(float2 uv, float lod)
+{
+    return g_albedoTexture.SampleLevel(g_linearSampler, uv, lod);
+}
+
+float3 SampleNormal(float2 uv, float lod, bool reverseY)
+{
+    float3 normalTex = g_normalTexture.SampleLevel(g_linearSampler, uv, lod).rgb * 2.0 - 1.0;
+    if (reverseY)
+        normalTex.y = -normalTex.y;
+    return normalTex;
+}
+
+float SampleAO(float2 uv, float lod)
+{
+    return g_aoTexture.SampleLevel(g_linearSampler, uv, lod).r;
+}
+
+float SampleRoughness(float2 uv, float lod)
+{
+    if (isGLTF)
+        return g_roughnessTexture.SampleLevel(g_linearSampler, uv, lod).g;
+    return g_roughnessTexture.SampleLevel(g_linearSampler, uv, lod).r;
+}
+
+float SampleMetallic(float2 uv, float lod)
+{
+    if (isGLTF)
+        return g_metallicTexture.SampleLevel(g_linearSampler, uv, lod).b;
+    return g_metallicTexture.SampleLevel(g_linearSampler, uv, lod).r;
+}
+
+float3 SampleEmissive(float2 uv, float lod)
+{
+    return g_emissiveTexture.SampleLevel(g_linearSampler, uv, lod).rgb;
+}
+
+void RetrieveMaterialParam(float2 uv, float lod, bool reverseY, 
+                           out float3 albedo, out float3 normalWorld, out float ao, 
+                           out float roughness, out float metallic, out float3 emissive, 
+                           float3x3 TBN)
+{
+    albedo = SampleAlbedo(uv, lod);
+    float3 normalTex = SampleNormal(uv, lod, reverseY);
+    ao = SampleAO(uv, lod);
+    roughness = SampleRoughness(uv, lod);
+    metallic = SampleMetallic(uv, lod);
+    emissive = SampleEmissive(uv, lod);
+    normalWorld = normalize(mul(normalTex, TBN));
+}
+
 // https://www.d3dcoder.net/Data/Resources/ParallaxOcclusion.pdf
-float2 ParallaxOcclusionMap(float2 inputTexture, float3 normalWorld, float3 viewDir, float3 viewDirTS, float distance)
+float2 ParallaxOcclusionMap(float2 inputTexture, float3 normalW, float3 viewDir, float3 viewDirTS, float distance)
 {
     float2 maxParallaxOffset = -viewDirTS.xy * 0.002 / max(viewDirTS.z, 0.01);
    
-    float angleFactor = dot(viewDir, normalWorld);
+    float angleFactor = dot(viewDir, normalW);
     const int minLayer = 8;
     const int maxLayer = 32;
     int sampleCount = (int) lerp(maxLayer, minLayer, angleFactor);
@@ -168,37 +222,32 @@ struct PixelShaderOutput
 
 PixelShaderOutput main(PixelShaderInput input)
 {
+    float2 uv = input.texcoord;
     float3 toEye = normalize(eyeWorld - input.posWorld);
     float3 viewDir = -toEye;
     float dist = length(eyeWorld - input.posWorld);
-    
     float lod = 0.0;
     
-    float3 N = input.normalWorld;
-    float3 T = normalize(input.tangentWorld - dot(input.tangentWorld, N) * N);
+    float3 N = input.normalW;
+    float3 T = normalize(input.tangentW - dot(input.tangentW, N) * N);
     float3 B = cross(N, T);
     float3x3 TBN = float3x3(T, B, N);
     
     float3 viewDirTS = mul(viewDir, TBN);
     viewDirTS = normalize(viewDirTS);
     
-    float2 parallaxUV = ParallaxOcclusionMap(input.texcoord, input.normalWorld, viewDir, viewDirTS, dist);
-    
-    float3 albedo = g_albedoTexture.SampleLevel(g_linearSampler, parallaxUV, lod);
-    float3 normalTex = g_normalTexture.SampleLevel(g_linearSampler, parallaxUV, lod).rgb * 2.0 - 1.0;
-    
-    if (reverseNormalMapY)
+    if (isParallax)
     {
-        normalTex.y = -normalTex.y;
+        uv = ParallaxOcclusionMap(uv, input.normalW, viewDir, viewDirTS, dist);
     }
     
-    float ao = g_aoTexture.SampleLevel(g_linearSampler, parallaxUV, lod).r;
-    float roughness = g_roughnessTexture.SampleLevel(g_linearSampler, parallaxUV, lod).r;
-    float metalic = g_metalicTexture.SampleLevel(g_linearSampler, parallaxUV, lod).r;
+    float3 albedo, normalWorld, emissive;
+    float ao, roughness, metallic;
     
-    float3 normalWorld = normalize(mul(normalTex, TBN));
+    RetrieveMaterialParam(uv, lod, reverseNormalMapY, albedo, normalWorld, 
+                          ao, roughness, metallic, emissive, TBN);
     
-    float3 ambientLighting = AmbientLightingIBL(albedo, normalWorld, toEye, ao, metalic, roughness);
+    float3 ambientLighting = AmbientLightingIBL(albedo, normalWorld, toEye, ao, metallic, roughness);
     float3 directLighting = float3(0, 0, 0);
     
     int i = 0;
@@ -217,9 +266,9 @@ PixelShaderOutput main(PixelShaderInput input)
         float NdotH = max(0.0, dot(normalWorld, halfway));
         float NdotO = max(0.0, dot(normalWorld, toEye));
         
-        float3 F0 = lerp(Fdielectric, albedo, metalic);
+        float3 F0 = lerp(Fdielectric, albedo, metallic);
         float3 F = SchlickFresnelUnrealOld(F0, max(0.0f, dot(halfway, toEye)));
-        float3 kd = lerp(float3(1, 1, 1) - F, float3(0, 0, 0), metalic);
+        float3 kd = lerp(float3(1, 1, 1) - F, float3(0, 0, 0), metallic);
         float3 diffuseBRDF = kd * albedo;
         
         float3 specularBRDF = CalculateSpecularBRDF(F, NdotI, NdotH, NdotO, roughness);
@@ -233,6 +282,6 @@ PixelShaderOutput main(PixelShaderInput input)
     //}
     
     PixelShaderOutput output;
-    output.pixelColor = float4(ambientLighting + directLighting, 1.0);
+    output.pixelColor = float4(ambientLighting + directLighting + emissive, 1.0);
     return output;
 }

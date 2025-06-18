@@ -27,14 +27,20 @@ class D3D11Utils {
     static bool CreateDepthBuffer(ComPtr<ID3D11Device> &device, int screenWidth, int screenHeight,
                                   UINT &numQualityLevels,
                                   ComPtr<ID3D11DepthStencilView> &depthStencilView);
+    // Vertex Shader
     static void
     CreateVertexShaderAndInputLayout(ComPtr<ID3D11Device> &device, const wstring &filename,
                                      const vector<D3D11_INPUT_ELEMENT_DESC> &inputElements,
                                      ComPtr<ID3D11VertexShader> &m_vertexShader,
                                      ComPtr<ID3D11InputLayout> &m_inputLayout);
-
+    // Pixel Shader
     static void CreatePixelShader(ComPtr<ID3D11Device> &device, const wstring &filename,
                                   ComPtr<ID3D11PixelShader> &m_pixelShader);
+    
+    static void CreateGeometryShader(ComPtr<ID3D11Device> &device,
+                                     const wstring &filename,
+                                     ComPtr<ID3D11GeometryShader> &m_geometryShader);
+
     static void CreateIndexBuffer(ComPtr<ID3D11Device> &device, const vector<uint32_t> &indices,
                                   ComPtr<ID3D11Buffer> &indexBuffer);
 

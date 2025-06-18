@@ -93,6 +93,14 @@ void Model::Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext>
                                       newMesh->m_metalicTextureSRV);
         }
 
+        if (!meshData.emissiveTextureFilename.empty()) {
+            std::cout << "Loading emssive texture: " << meshData.emissiveTextureFilename
+                      << std::endl;
+            D3D11Utils::CreateTexture(device, context, meshData.emissiveTextureFilename,
+                                      true, newMesh->m_emissiveTexture,
+                                      newMesh->m_emissiveTextureSRV);
+        }
+
         newMesh->m_vertexConstantBuffer = m_vertexConstantBuffer;
         newMesh->m_pixelConstantBuffer = m_pixelConstantBuffer;
 
@@ -109,14 +117,28 @@ void Model::Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext>
     D3D11Utils::CreateVertexShaderAndInputLayout(device, L"Base.vert.hlsl", basicInputElements,
                                                  m_basicVertexShader, m_basicInputLayout);
     D3D11Utils::CreatePixelShader(device, L"Base.frag.hlsl", m_basicPixelShader);
+
+    // Debug Purpose
+    // Certainly possible to create inputlayout for normal, but it's better to use same as above
+    D3D11Utils::CreateVertexShaderAndInputLayout(device, L"Normal.vert.hlsl",
+                                                 basicInputElements, m_normalVertexShader,
+                                                 m_basicInputLayout);
+    D3D11Utils::CreateGeometryShader(device, L"Normal.geom.hlsl", m_normalGeometryShader);
+    D3D11Utils::CreatePixelShader(device, L"Normal.frag.hlsl", m_normalPixelShader);
+    D3D11Utils::CreateConstantBuffer(device, m_normalVertexConstantData,
+                                     m_normalConstantBuffer);
 }
 
 void Model::UpdateConstantBuffers(ComPtr<ID3D11Device> &device,
                                   ComPtr<ID3D11DeviceContext> &context) {
 
     D3D11Utils::UpdateBuffer(device, context, m_basicVertexConstantData, m_vertexConstantBuffer);
-
     D3D11Utils::UpdateBuffer(device, context, m_basicPixelConstantData, m_pixelConstantBuffer);
+    if (m_drawNormals && m_drawNormalsDirtyFlags) {
+        D3D11Utils::UpdateBuffer(device, context, m_normalVertexConstantData,
+                                 m_normalConstantBuffer);
+        m_drawNormalsDirtyFlags = false;
+    }
 }
 
 void Model::Render(ComPtr<ID3D11DeviceContext> &context) {
@@ -140,8 +162,9 @@ void Model::Render(ComPtr<ID3D11DeviceContext> &context) {
                                                        mesh->m_normalTextureSRV.Get(),
                                                        mesh->m_heightTextureSRV.Get(),
                                                        mesh->m_aoTextureSRV.Get(),
+                                                       mesh->m_metalicTextureSRV.Get(),
                                                        mesh->m_roughnessTextureSRV.Get(),
-                                                       mesh->m_metalicTextureSRV.Get()};
+                                                       mesh->m_emissiveTextureSRV.Get()};
 
         context->PSSetShaderResources(0, UINT(resViews.size()), resViews.data());
 
@@ -153,6 +176,18 @@ void Model::Render(ComPtr<ID3D11DeviceContext> &context) {
         context->IASetIndexBuffer(mesh->m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         context->DrawIndexed(mesh->m_indexCount, 0, 0);
+
+        if (m_drawNormals) {
+            context->VSSetShader(m_normalVertexShader.Get(), 0, 0);
+            ID3D11Buffer *pptr[2] = {m_vertexConstantBuffer.Get(),
+                                     m_normalConstantBuffer.Get()};
+            context->GSSetConstantBuffers(0, 2, pptr);
+            context->GSSetShader(m_normalGeometryShader.Get(), 0, 0);
+            context->PSSetShader(m_normalPixelShader.Get(), 0, 0);
+            context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+            context->Draw(mesh->m_vertexCount, 0);
+            context->GSSetShader(nullptr, 0, 0);
+        }
     }
 }
 

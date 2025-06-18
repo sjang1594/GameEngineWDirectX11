@@ -68,9 +68,6 @@
     <ClInclude Include="ImageUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Terrain.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -114,9 +111,6 @@
     <ClCompile Include="ImageUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Terrain.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -137,6 +131,7 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="..\README.md" />
+    <None Include="BRDF.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Base.vert.hlsl">
@@ -161,6 +156,15 @@
       <Filter>Shader</Filter>
     </FxCompile>
     <FxCompile Include="Combine.frag.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Normal.vert.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Normal.frag.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Normal.geom.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
   </ItemGroup>
