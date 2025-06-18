@@ -59,9 +59,27 @@ bool App::Initialize() {
         MeshData sphere = GeometryGenerator::MakeSphere(radius, 100, 100, {2.0f, 2.0f});
     }
 
-    // Model
+    // Main Character
     {
+        Vector3 center(0.0f, 1.0f, 0.0f);
+        auto mainCharacterMesh = GeometryGenerator::ReadFromFile(
+            "../Assets/Characters/medieval_vagrant_knights/", "scene.gltf");
+        m_mainCharacter.m_basicPixelConstantData.reverseNormalMapY = true;
+        m_mainCharacter.Initialize(m_d3dDevice, m_d3dContext, mainCharacterMesh);
+        m_mainCharacter.m_irradianceSRV = m_cubeMapping.m_diffuseSRV;
+        m_mainCharacter.m_specularSRV = m_cubeMapping.m_specularSRV;
+        m_mainCharacter.m_brdfSRV = m_cubeMapping.m_envSRV;
+        m_mainCharacter.UpdateModelWorld(Matrix::CreateTranslation(center));
+    }
 
+    // Enemies (Monster)
+    {
+        auto monsterMesh1 = GeometryGenerator::ReadFromFile(
+            "../Assets/Characters/dark_souls/", "scene.gltf");
+        
+
+        auto monsterMesh2 =
+            GeometryGenerator::ReadFromFile("../Assets/Characters/valak/", "scene.gltf");
     }
 
     return true; 

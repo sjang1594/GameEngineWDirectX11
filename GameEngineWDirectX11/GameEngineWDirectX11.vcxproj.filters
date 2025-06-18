@@ -158,5 +158,14 @@
     <FxCompile Include="Combine.frag.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
+    <FxCompile Include="Normal.vert.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Normal.frag.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Normal.geom.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>
