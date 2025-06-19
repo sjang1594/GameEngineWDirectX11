@@ -34,7 +34,6 @@ using Microsoft::WRL::ComPtr;
     // Graphics PipelineStates
     extern GraphicsPSO defaultSolidPSO;
     extern GraphicsPSO defaultWirePSO;
-    extern GraphicsPSO stencilMaskPSO;
     extern GraphicsPSO skyboxSolidPSO;
     extern GraphicsPSO skyboxWirePSO;
 
