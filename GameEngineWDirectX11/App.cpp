@@ -9,11 +9,17 @@ bool App::Initialize() {
     if (!EngineBase::Initialize())
         return false;
 
-    m_cubeMapping.Initialize(m_d3dDevice,
-                             L"../Assets/Cubemaps/NightSky_0/NightSky_0EnvHDR.dds",
-                             L"../Assets/Cubemaps/NightSky_0/NightSky_0DiffuseHDR.dds",
-                             L"../Assets/Cubemaps/NightSky_0/NightSky_0SpecularHDR.dds",
-                             L"../Assets/Cubemaps/NightSky_0/NightSky_0Brdf.dds");
+    EngineBase::InitCubemaps(L"../Assets/Cubemaps/",
+                             L"NightSky_0/NightSky_0EnvHDR.dds",
+                             L"NightSky_0/NightSky_0DiffuseHDR.dds",
+                             L"NightSky_0/NightSky_0SpecularHDR.dds",
+                             L"NightSky_0/NightSky_0Brdf.dds");
+
+    {
+        MeshData skyboxMesh = GeometryGenerator::MakeBox(40.0f);
+        std::reverse(skyboxMesh.indices.begin(), skyboxMesh.indices.end());
+        m_skybox = make_shared<Model>(m_d3dDevice, m_d3dContext, vector{skyboxMesh});
+    }
 
     // Make this from Scene Loader
     // TODO: Load the Terrain Firstr cave

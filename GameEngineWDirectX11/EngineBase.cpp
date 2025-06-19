@@ -2,6 +2,7 @@
 #include "EngineBase.h"
 #include "Camera.h"
 #include "D3D11Utils.h"
+#include "GraphicsCommon.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam,
                                                              LPARAM lParam);
@@ -24,12 +25,13 @@ EngineBase::EngineBase()
 
     g_engeinBase = this;
     m_camera = std::make_shared<Camera>();
-    m_camera->SetAspectRatio(this->GetAspectRatio());
+    m_camera->SetAspectRatio(GetAspectRatio());
 }
 
 EngineBase::~EngineBase() {
     g_engeinBase = nullptr;
 
+    /* Clean Up */
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
@@ -106,12 +108,8 @@ LRESULT EngineBase::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                                           DXGI_FORMAT_UNKNOWN, 0);
 
             CreateBuffers();
-            D3D11Utils::CreateDepthBuffer(m_d3dDevice, m_screenWidth, m_screenHeight,
-                                          m_numQualityLevels, m_d3dDepthStencilView);
             SetViewport();
             m_camera->SetAspectRatio(this->GetAspectRatio());
-            m_postProcess.Initialize(m_d3dDevice, m_d3dContext, {m_resolvedSRV}, {m_backBufferRTV},
-                                     m_screenWidth, m_screenHeight);
         }
         break;
     case WM_SYSCOMMAND:
@@ -119,7 +117,7 @@ LRESULT EngineBase::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             return 0;
         break;
     case WM_MOUSEMOVE:
-        OnMouseMove(wParam, LOWORD(lParam), HIWORD(lParam));
+        OnMouseMove(LOWORD(lParam), HIWORD(lParam));
         break;
     case WM_LBUTTONUP:
         break;
@@ -142,13 +140,85 @@ LRESULT EngineBase::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return ::DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-void EngineBase::OnMouseMove(WPARAM btnState, int mouseX, int mouseY) {
+void EngineBase::OnMouseMove(int mouseX, int mouseY) {
     m_cursor_ndc_x = mouseX * 2.0f / m_screenWidth - 1.0f;
     m_cursor_ndc_y = -mouseY * 2.0f / m_screenHeight + 1.0f;
 
     m_cursor_ndc_x = std::clamp(m_cursor_ndc_x, -1.0f, 1.0f);
     m_cursor_ndc_y = std::clamp(m_cursor_ndc_y, -1.0f, 1.0f);
     m_camera->UpdateMouse(m_cursor_ndc_x, m_cursor_ndc_y);
+}
+
+void EngineBase::SetGlobalConstants(ComPtr<ID3D11Buffer> &globalConstantsGPU) {
+    m_d3dContext->VSSetConstantBuffers(1, 1, globalConstantsGPU.GetAddressOf());
+    m_d3dContext->PSSetConstantBuffers(1, 1, globalConstantsGPU.GetAddressOf());
+    m_d3dContext->GSSetConstantBuffers(1, 1, globalConstantsGPU.GetAddressOf());
+}
+
+void EngineBase::UpdateGlobalConstants(const Vector3 eyeWorld, const Matrix &view,
+                                       const Matrix &proj, const Matrix &refl) {
+    m_globalConstsCPU.eyeWorld = eyeWorld;
+    m_globalConstsCPU.view = view.Transpose();
+    m_globalConstsCPU.proj = proj.Transpose();
+    m_globalConstsCPU.viewProj = (view * proj).Transpose();
+
+    D3D11Utils::UpdateBuffer(m_d3dDevice, m_d3dContext, m_globalConstsCPU,
+                                     m_globalConstsGPU);
+}
+
+void EngineBase::InitCubemaps(const wstring &basePath, const wstring &envFilename,
+                              const wstring &specularFilename,
+                              const wstring &irradianceFilename,
+                              const wstring &brdfFilename) {
+    
+    std::array<CubeMapInfo, 4> textures = {{{envFilename, true, m_envSRV},
+                                            {specularFilename, true, m_specularSRV},
+                                            {irradianceFilename, true, m_diffuseSRV},
+                                            {brdfFilename, false, m_brdfSRV}}};
+
+    for (const auto &tex : textures) {
+        D3D11Utils::CreateDDSTexture(m_d3dDevice, (basePath + tex.fileName).c_str(),
+                                     tex.isCubeMap, tex.srv);
+    }
+}
+
+void EngineBase::CreateDepthBuffers() {
+    D3D11_TEXTURE2D_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+    desc.Width = m_screenWidth;
+    desc.Height = m_screenHeight;
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Usage = D3D11_USAGE_DEFAULT;
+    desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+    desc.CPUAccessFlags = 0;
+    desc.MiscFlags = 0;
+    if (m_numQualityLevels > 0) {
+        desc.SampleDesc.Count = 4;
+        desc.SampleDesc.Quality = m_numQualityLevels - 1;
+    } else {
+        desc.SampleDesc.Count = 1;
+        desc.SampleDesc.Quality = 0;
+    }
+    desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    ComPtr<ID3D11Texture2D> depthStencilBuffer;
+    ThrowIfFailed(
+        m_d3dDevice->CreateTexture2D(&desc, 0, depthStencilBuffer.GetAddressOf()));
+    ThrowIfFailed(m_d3dDevice->CreateDepthStencilView(depthStencilBuffer.Get(), 
+        nullptr, m_d3dDepthStencilView.GetAddressOf()));
+}
+
+void EngineBase::SetPipelineState(const GraphicsPSO &pso) {
+    m_d3dContext->VSSetShader(pso.m_vertexShader.Get(), 0, 0);
+    m_d3dContext->PSSetShader(pso.m_pixelShader.Get(), 0, 0);
+    m_d3dContext->HSSetShader(pso.m_hullShader.Get(), 0, 0);
+    m_d3dContext->DSSetShader(pso.m_domainShader.Get(), 0, 0);
+    m_d3dContext->GSSetShader(pso.m_geometryShader.Get(), 0, 0);
+    m_d3dContext->IASetInputLayout(pso.m_inputLayout.Get());
+    m_d3dContext->RSSetState(pso.m_rasterizerState.Get());
+    m_d3dContext->OMSetBlendState(pso.m_blendState.Get(), pso.m_blendFactor, 0xffffffff);
+    m_d3dContext->OMSetDepthStencilState(pso.m_depthStencilState.Get(), pso.m_stencilRef);
+    m_d3dContext->IASetPrimitiveTopology(pso.m_primitiveTopology);
 }
 
 bool EngineBase::InitMainWindow() {
@@ -258,7 +328,6 @@ bool EngineBase::InitD3D() {
     sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
     sd.BufferDesc.RefreshRate.Numerator = 60;
     sd.BufferDesc.RefreshRate.Denominator = 1;
-    // sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT; // Use this as Image Filter 
     sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     sd.BufferCount = 2;
     sd.OutputWindow = m_mainWindow;
@@ -273,52 +342,12 @@ bool EngineBase::InitD3D() {
         PrintErrorMessage(hr, "Failed to create Swap Chain");
         return false;
     }
-    
-    CreateBuffers();
 
+    Graphics::InitCommonStates(m_d3dDevice);
+    CreateBuffers();
     SetViewport();
     
-    // Create Rasterizer State
-    D3D11_RASTERIZER_DESC rastDesc;
-    ZeroMemory(&rastDesc, sizeof(D3D11_RASTERIZER_DESC));
-    rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
-    rastDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
-    rastDesc.FrontCounterClockwise = false;
-    rastDesc.DepthClipEnable = true;
-
-    hr = m_d3dDevice->CreateRasterizerState(&rastDesc, &m_solidRasterizerSate);
-    if (FAILED(hr)) {
-        PrintErrorMessage(hr, "Failed to create Rasterizer State");
-        return false;
-    }
-
-    if (m_drawNormal) {
-        rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_WIREFRAME;
-
-        hr = m_d3dDevice->CreateRasterizerState(&rastDesc, &m_wireframeRasterizerState);
-        if (FAILED(hr)) {
-            PrintErrorMessage(hr, "Failed to create Rasterizer State");
-            return false;
-        }
-    }
-
-    m_postProcess.Initialize(m_d3dDevice, m_d3dContext, {m_resolvedSRV}, {m_backBufferRTV},
-                             m_screenWidth, m_screenHeight);
-
-    // Create depth stencil state
-    D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
-    ZeroMemory(&depthStencilDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
-    depthStencilDesc.DepthEnable = true; // false
-    depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK::D3D11_DEPTH_WRITE_MASK_ALL;
-    depthStencilDesc.DepthFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_LESS_EQUAL;
-
-    hr = m_d3dDevice->CreateDepthStencilState(&depthStencilDesc,
-                                              m_d3dDepthStencilState.GetAddressOf());
-    if (FAILED(hr)) {
-        PrintErrorMessage(hr, "Failed to create Depth Stencil State");
-        return false;
-    }
-
+    D3D11Utils::CreateConstantBuffer(m_d3dDevice, m_globalConstsCPU, m_globalConstsGPU);
     return true;
 }
 
@@ -403,9 +432,6 @@ void EngineBase::CreateBuffers() {
     D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
     m_floatRTV->GetDesc(&viewDesc);
 
-    D3D11Utils::CreateDepthBuffer(m_d3dDevice, m_screenWidth, m_screenHeight, m_numQualityLevels,
-                                  m_d3dDepthStencilView);
-
     // FLOAT MSAA Resolve Buffer for SRV/RTV
     desc.SampleDesc.Count = 1;
     desc.SampleDesc.Quality = 0;
@@ -414,5 +440,11 @@ void EngineBase::CreateBuffers() {
                                                         m_resolvedSRV.GetAddressOf()));
     ThrowIfFailed(m_d3dDevice->CreateRenderTargetView(m_resolvedBuffer.Get(), NULL,
                                                       m_resolvedRTV.GetAddressOf()));
+
+    CreateDepthBuffers();
+
+    m_postProcess.Initialize(m_d3dDevice, m_d3dContext, {m_resolvedSRV},
+                             {m_backBufferRTV},
+                             m_screenWidth, m_screenHeight);
 }
 } // namespace Luna

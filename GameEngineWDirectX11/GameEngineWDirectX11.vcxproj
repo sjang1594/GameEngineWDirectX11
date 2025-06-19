@@ -190,10 +190,10 @@
     <ClInclude Include="D3D11Utils.h" />
     <ClInclude Include="EngineBase.h" />
     <ClInclude Include="GeometryGenerator.h" />
+    <ClInclude Include="GraphicsCommon.h" />
+    <ClInclude Include="GraphicsPSO.h" />
     <ClInclude Include="ImageFilter.h" />
     <ClInclude Include="ImageUtils.h" />
-    <ClInclude Include="Light.h" />
-    <ClInclude Include="Material.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="MeshData.h" />
     <ClInclude Include="Model.h" />
@@ -210,6 +210,8 @@
     <ClCompile Include="D3D11Utils.cpp" />
     <ClCompile Include="EngineBase.cpp" />
     <ClCompile Include="GeometryGenerator.cpp" />
+    <ClCompile Include="GraphicsCommon.cpp" />
+    <ClCompile Include="GraphicsPSO.cpp" />
     <ClCompile Include="ImageFilter.cpp" />
     <ClCompile Include="ImageUtils.cpp" />
     <ClCompile Include="main.cpp" />
