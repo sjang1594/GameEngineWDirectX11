@@ -49,6 +49,7 @@
 #include <tuple>
 #include <string>
 #include <filesystem>
+#include <array>
 
 #include <dxgi.h>
 #include <imgui.h>

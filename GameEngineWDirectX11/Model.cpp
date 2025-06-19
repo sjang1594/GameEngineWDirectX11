@@ -31,13 +31,6 @@ void Model::Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext>
     samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
     device->CreateSamplerState(&samplerDesc, m_clmapSamplerState.GetAddressOf());
 
-    m_basicVertexConstantData.model = Matrix();
-    m_basicVertexConstantData.view = Matrix();
-    m_basicVertexConstantData.projection = Matrix();
-
-    D3D11Utils::CreateConstantBuffer(device, m_basicVertexConstantData, m_vertexConstantBuffer);
-    D3D11Utils::CreateConstantBuffer(device, m_basicPixelConstantData, m_pixelConstantBuffer);
-
     for (const auto &meshData : meshes) {
         auto newMesh = std::make_shared<Mesh>();
         D3D11Utils::CreateVertexBuffer(device, meshData.vertices, newMesh->m_vertexBuffer);
@@ -189,6 +182,10 @@ void Model::Render(ComPtr<ID3D11DeviceContext> &context) {
             context->GSSetShader(nullptr, 0, 0);
         }
     }
+}
+
+void Model::RenderNormal(ComPtr<ID3D11DeviceContext> &context) {
+
 }
 
 void Model::UpdateModelWorld(const Matrix &modelToWorld) { 
