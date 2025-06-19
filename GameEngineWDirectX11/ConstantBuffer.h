@@ -34,7 +34,7 @@ static_assert((sizeof(BasicPixelConstantData) % 16) == 0,
 
 struct NormalVertexConstantData {
     float scale = 0.1f; // 4
-    float dummy1;       // 4
+    float dummy;        // 4
     float dummy2[2];    // 8
 };
 

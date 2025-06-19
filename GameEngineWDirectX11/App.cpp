@@ -19,18 +19,6 @@ bool App::Initialize() {
     // TODO: Load the Terrain Firstr cave
     {
         MeshData ground = GeometryGenerator::MakeSquare(1.0f, {1.0f, 1.0f});
-        // ground.albedoTextureFilename =
-        //     "../Assets/Textures/Ground/Grass007_4K-JPG/Grass007_4K-JPG_Color.jpg";
-        // ground.normalTextureFilename =
-        //     "../Assets/Textures/Ground/Grass
-        // TODO: This parallax occlusion should be building
-        // o007_4K-JPG/Grass007_4K-JPG_NormalDX.jpg"; ground.aoTextureFilename =
-        //     "../Assets/Textures/Ground/Grass007_4K-JPG/Grass007_4K-JPG_AmbientOcclusion.jpg";
-        // ground.heightTextureFilename =
-        //     "../Assets/Textures/Ground/Grass007_4K-JPG/Grass007_4K-JPG_Displacement.jpg";
-        // ground.roughnessTextureFilename =
-        //     "../Assets/Textures/Ground/Grass007_4K-JPG/Grass007_4K-JPG_Roughness.jpg";
-
         ground.albedoTextureFilename =
             "../Assets/Textures/Ground/Bricks075A_4K-PNG/Bricks075A_4K-PNG_Color.png";
         ground.normalTextureFilename =
