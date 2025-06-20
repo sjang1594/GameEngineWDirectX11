@@ -9,6 +9,8 @@
 #include "PostProcess.h"
 
 namespace Luna {
+    using DirectX::BoundingSphere;
+    using DirectX::SimpleMath::Quaternion;
 	using Microsoft::WRL::ComPtr;
 	using std::vector;
 	using std::wstring;
@@ -33,6 +35,8 @@ namespace Luna {
 
         virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
         virtual void OnMouseMove(int mouseX, int mouseY);
+        bool UpdateMouseCtrl(const BoundingSphere &boundingSphere, Quaternion &qr,
+                             Vector3 &dragTranslation, Vector3 &pickPoint) {}
         
         void SetGlobalConstants(ComPtr<ID3D11Buffer> &globalConstantsGPU);
         void UpdateGlobalConstants(const Vector3 eyeWorld, const Matrix &view,

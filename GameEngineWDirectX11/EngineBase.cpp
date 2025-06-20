@@ -157,7 +157,13 @@ void EngineBase::SetGlobalConstants(ComPtr<ID3D11Buffer> &globalConstantsGPU) {
 
 void EngineBase::UpdateGlobalConstants(const Vector3 eyeWorld, const Matrix &view,
                                        const Matrix &proj, const Matrix &refl) {
+    m_globalConstsCPU.eyeWorld = eyeWorld;
+    m_globalConstsCPU.view = view.Transpose();
+    m_globalConstsCPU.proj = proj.Transpose();
+    m_globalConstsCPU.viewProj = (view * proj).Transpose();
 
+    D3D11Utils::UpdateBuffer(m_d3dDevice, m_d3dContext, m_globalConstsCPU,
+                                     m_globalConstsGPU);
 }
 
 void EngineBase::InitCubemaps(const wstring &basePath, const wstring &envFilename,
@@ -322,7 +328,6 @@ bool EngineBase::InitD3D() {
     sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
     sd.BufferDesc.RefreshRate.Numerator = 60;
     sd.BufferDesc.RefreshRate.Denominator = 1;
-    // sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT; // Use this as Image Filter 
     sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     sd.BufferCount = 2;
     sd.OutputWindow = m_mainWindow;

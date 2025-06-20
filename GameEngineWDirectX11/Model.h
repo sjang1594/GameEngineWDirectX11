@@ -21,41 +21,24 @@ class Model {
                                ComPtr<ID3D11DeviceContext> &context);
 
     void Render(ComPtr<ID3D11DeviceContext> &context);
-
+    void RenderNormal(ComPtr<ID3D11DeviceContext> &context);
     void UpdateModelWorld(const Matrix &modelToWorld);
 
   public:
     Matrix m_modelWorld = Matrix();
     Matrix m_modelWorldIT = Matrix();
 
-    BasicVertexConstantData m_basicVertexConstantData;
-    BasicPixelConstantData m_basicPixelConstantData;
-
-    ComPtr<ID3D11ShaderResourceView> m_irradianceSRV;
-    ComPtr<ID3D11ShaderResourceView> m_specularSRV;
-    ComPtr<ID3D11ShaderResourceView> m_brdfSRV;
-
-    NormalVertexConstantData m_normalVertexConstantData;
+    MeshConstants m_meshConstsCPU;
+    ComPtr<ID3D11Buffer> m_meshConstsGPU;
+    MaterialConstants m_materialConstsCPU;
+    ComPtr<ID3D11Buffer> m_materialConstsGPU;
+    
     bool m_drawNormals = false;
     bool m_drawNormalsDirtyFlags = true;
  
   private:
     std::vector<shared_ptr<Mesh>> m_meshes;
 
-    ComPtr<ID3D11VertexShader> m_basicVertexShader;
-    ComPtr<ID3D11PixelShader> m_basicPixelShader;
-    ComPtr<ID3D11InputLayout> m_basicInputLayout;
-
-    ComPtr<ID3D11SamplerState> m_linearSamplerState;
-    ComPtr<ID3D11SamplerState> m_clmapSamplerState;
-
-    ComPtr<ID3D11Buffer> m_vertexConstantBuffer;
-    ComPtr<ID3D11Buffer> m_pixelConstantBuffer;
-
-    ComPtr<ID3D11VertexShader> m_normalVertexShader;
-    ComPtr<ID3D11PixelShader> m_normalPixelShader;
-    ComPtr<ID3D11GeometryShader> m_normalGeometryShader;
-    ComPtr<ID3D11Buffer> m_normalConstantBuffer;
 };
 
 } // namespace Luna
