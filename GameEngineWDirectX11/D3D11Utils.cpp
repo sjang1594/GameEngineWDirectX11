@@ -154,27 +154,50 @@ void D3D11Utils::CreateTexture(ComPtr<ID3D11Device> &device, ComPtr<ID3D11Device
         ImageUtils::ReadImage(filename, image, width, height);
     }
 
-    ComPtr<ID3D11Texture2D> stagingTexture =
-        CreateStagingTexture(device, context, width, height, image, pixelFormat);
+    CreateTextureImpl(device, context, width, height, image, pixelFormat, tex, srv);
+}
 
-    D3D11_TEXTURE2D_DESC desc;
-    ZeroMemory(&desc, sizeof(desc));
-    desc.Width = width;
-    desc.Height = height;
-    desc.MipLevels = 0;
-    desc.ArraySize = 1;
-    desc.Format = pixelFormat;
-    desc.SampleDesc.Count = 1;
-    desc.Usage = D3D11_USAGE_DEFAULT;
-    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
-    desc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
-    desc.CPUAccessFlags = 0;
+void D3D11Utils::CreateMetallicRoughnessTexture(ComPtr<ID3D11Device> &device,
+                                                ComPtr<ID3D11DeviceContext> &context,
+                                                const std::string metallicFilename,
+                                                const std::string roughnessFilename,
+                                                ComPtr<ID3D11Texture2D> &texture,
+                                                ComPtr<ID3D11ShaderResourceView> &srv) {
+    
+    if (!metallicFilename.empty() && (metallicFilename == roughnessFilename)) {
+        CreateTexture(device, context, metallicFilename, false, texture, srv);
+    } else {
+        int mWidth = 0, mHeight = 0;
+        int rWidth = 0, rHeight = 0;
+        std::vector<uint8_t> mImage;
+        std::vector<uint8_t> rImage;
+        
+        if (!metallicFilename.empty()) {
+            ImageUtils::ReadImage(metallicFilename, mImage, mWidth, mHeight);
+        }
 
-    device->CreateTexture2D(&desc, nullptr, texture.GetAddressOf());
+        if (!roughnessFilename.empty()) {
+            ImageUtils::ReadImage(roughnessFilename, rImage, rWidth, rHeight);
+        }
 
-    context->CopySubresourceRegion(texture.Get(), 0, 0, 0, 0, stagingTexture.Get(), 0, nullptr);
-    device->CreateShaderResourceView(texture.Get(), 0, textureResourceView.GetAddressOf());
-    context->GenerateMips(textureResourceView.Get());
+        if (!metallicFilename.empty() && !roughnessFilename.empty()) {
+            assert(mWidth == rWidth);
+            assert(mHeight == rHeight);
+        }
+
+        vector<uint8_t> combinedImage(size_t(mWidth * mHeight) * 4);
+        fill(combinedImage.begin(), combinedImage.end(), 0);
+
+        for (size_t i = 0; i < size_t(mWidth * mHeight); i++) {
+            if (rImage.size())
+                combinedImage[4 * i + 1] = rImage[4 * i]; // Green = Roughness
+            if (mImage.size())
+                combinedImage[4 * i + 2] = mImage[4 * i]; // Blue = Metalness
+        }
+
+        CreateTextureImpl(device, context, mWidth, mHeight, combinedImage,
+                            DXGI_FORMAT_R8G8B8A8_UNORM, texture, srv);
+    }
 }
 
 void D3D11Utils::CreateTextureArray(ComPtr<ID3D11Device> &device,
@@ -245,5 +268,36 @@ void D3D11Utils::CreateDDSTexture(ComPtr<ID3D11Device> &device, const wchar_t *f
         D3D11_RESOURCE_MISC_TEXTURECUBE, DDS_LOADER_FLAGS(false),
         (ID3D11Resource **)texture.GetAddressOf(), textureResourceView.GetAddressOf(),
         nullptr));
+}
+
+void D3D11Utils::CreateTextureImpl(ComPtr<ID3D11Device> &device,
+                                   ComPtr<ID3D11DeviceContext> &context, const int width,
+                                   const int height, const vector<uint8_t> &image,
+                                   const DXGI_FORMAT pixelFormat,
+                                   ComPtr<ID3D11Texture2D> &texture,
+                                   ComPtr<ID3D11ShaderResourceView> &srv) {
+    
+    ComPtr<ID3D11Texture2D> stagingTexture =
+        CreateStagingTexture(device, context, width, height, image, pixelFormat);
+
+    D3D11_TEXTURE2D_DESC txtDesc;
+    ZeroMemory(&txtDesc, sizeof(txtDesc));
+    txtDesc.Width = width;
+    txtDesc.Height = height;
+    txtDesc.MipLevels = 0; // max mip level
+    txtDesc.ArraySize = 1;
+    txtDesc.Format = pixelFormat;
+    txtDesc.SampleDesc.Count = 1;
+    txtDesc.Usage = D3D11_USAGE_DEFAULT; // Copy from staging Texture
+    txtDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+    txtDesc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+    txtDesc.CPUAccessFlags = 0;
+
+    device->CreateTexture2D(&txtDesc, nullptr, texture.GetAddressOf());
+
+    context->CopySubresourceRegion(texture.Get(), 0, 0, 0, 0, stagingTexture.Get(), 0,
+                                   nullptr);
+    device->CreateShaderResourceView(texture.Get(), 0, srv.GetAddressOf());
+    context->GenerateMips(srv.Get());
 }
 } // namespace Luna

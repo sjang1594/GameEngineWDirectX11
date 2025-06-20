@@ -1,4 +1,7 @@
 #pragma once
+#include <vector>
+#include <wrl/client.h>
+#include <d3d11.h>
 #include "GraphicsPSO.h"
 // https://github.com/microsoft/DirectX-Graphics-Samples/blob/master/MiniEngine/Core/GraphicsCommon.h
 

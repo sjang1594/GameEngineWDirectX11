@@ -22,7 +22,6 @@ struct MeshData {
     std::string aoTextureFilename;
     std::string metallicTextureFilename;
     std::string roughnessTextureFilename;
-    std::string metalicTextureFilename;
 };
 
 } // namespace Luna

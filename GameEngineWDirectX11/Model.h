@@ -8,6 +8,14 @@ namespace Luna {
 using namespace std;
 class Model {
   public:
+    Model() = default;
+    Model(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext> &context,
+          const std::string &basePath, const std::string &filename);
+    Model(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext> &context,
+          const std::vector<MeshData> &meshes);
+
+    virtual ~Model() = default;
+
     void Initialize(ComPtr<ID3D11Device> &device, 
                     ComPtr<ID3D11DeviceContext>& context, 
                     const std::string &basePath, 
@@ -24,7 +32,6 @@ class Model {
     void RenderNormal(ComPtr<ID3D11DeviceContext> &context);
     void UpdateModelWorld(const Matrix &modelToWorld);
 
-  public:
     Matrix m_modelWorld = Matrix();
     Matrix m_modelWorldIT = Matrix();
 

@@ -26,7 +26,7 @@ class GeometryGenerator {
     static MeshData MakeSphere(const float radius, 
                                const int numSlices, 
                                const int numStacks, 
-                               const Vector2 texScale);
+                               const Vector2 texScale = Vector2(1.0f));
 
     static MeshData MakeTetrahedron();
     static MeshData MakeIcosahedron();

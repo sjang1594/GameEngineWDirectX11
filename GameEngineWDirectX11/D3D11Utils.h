@@ -112,6 +112,13 @@ class D3D11Utils {
                               ComPtr<ID3D11Texture2D> &texture,
                               ComPtr<ID3D11ShaderResourceView> &textureResourceView);
 
+    static void CreateMetallicRoughnessTexture(ComPtr<ID3D11Device> &device,
+                                               ComPtr<ID3D11DeviceContext> &context,
+                                               const std::string metallicFilename,
+                                               const std::string roughnessFilename,
+                                               ComPtr<ID3D11Texture2D> &texture,
+                                               ComPtr<ID3D11ShaderResourceView> &srv);
+
     static void CreateTextureArray(ComPtr<ID3D11Device> &device,
                                    ComPtr<ID3D11DeviceContext> &context,
                                    const std::vector<std::string> filenames,
@@ -121,5 +128,13 @@ class D3D11Utils {
     static void CreateDDSTexture(ComPtr<ID3D11Device> &device, 
                                  const wchar_t *filename, const bool bIsCubeMap,
                                  ComPtr<ID3D11ShaderResourceView> &textureResourceView);
+
+  private:
+    static void CreateTextureImpl(ComPtr<ID3D11Device> &device,
+                                  ComPtr<ID3D11DeviceContext> &context, const int width,
+                                  const int height, const vector<uint8_t> &image,
+                                  const DXGI_FORMAT pixelFormat,
+                                  ComPtr<ID3D11Texture2D> &texture,
+                                  ComPtr<ID3D11ShaderResourceView> &srv);
 };
 } // namespace Luna
