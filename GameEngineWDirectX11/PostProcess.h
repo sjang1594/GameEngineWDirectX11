@@ -28,14 +28,6 @@ class PostProcess {
     const float m_exposure = 1.0f;
 
     shared_ptr<Mesh> m_mesh;
-    ComPtr<ID3D11InputLayout> m_inputLayout;
-    ComPtr<ID3D11SamplerState> m_samplerState;
-    ComPtr<ID3D11RasterizerState> m_rasterizerSate;
-    ComPtr<ID3D11VertexShader> m_vertexShader;
-    ComPtr<ID3D11PixelShader> m_combinePixelShader;
-    ComPtr<ID3D11PixelShader> m_bloomDownPixelShader;
-    ComPtr<ID3D11PixelShader> m_bloomUpPixelShader;
-
     vector<ComPtr<ID3D11ShaderResourceView>> m_bloomSRVs;
     vector<ComPtr<ID3D11RenderTargetView>> m_bloomRTVs;
 };

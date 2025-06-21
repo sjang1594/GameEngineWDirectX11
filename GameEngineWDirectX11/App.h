@@ -1,34 +1,35 @@
 #pragma once
 #include "EngineBase.h"
 #include "Model.h"
-#include "CubeMapping.h"
 
 namespace Luna {
-	class App : public EngineBase {
-      public:
-        App();
-		virtual bool Initialize() override;
-        virtual void UpdateGUI() override;
-        virtual void Update(float dt) override;
-        virtual void Render() override;
-        void UpdateLight();
+using DirectX::BoundingSphere;
+using DirectX::BoundingOrientedBox;
 
-      protected:
-        // Don't use shared_ptr.
-        shared_ptr<Model> m_skybox;
-        Light m_light;
+class App : public EngineBase {
+  public:
+    App();
+    virtual bool Initialize() override;
+    virtual void UpdateGUI() override;
+    virtual void Update(float dt) override;
+    virtual void Render() override;
 
-        
-        Model m_groundModel;
+  protected:
+    // Default Objects
+    shared_ptr<Model> m_skybox;
+    shared_ptr<Model> m_lightSphere;
+    shared_ptr<Model> m_groundModel;
+    shared_ptr<Model> m_mainCharacter;
 
-        // Monster
-        Model m_darkSoul;
-        Model m_valak;
+    // Object
+    shared_ptr<Model> m_darkSoul;
+    shared_ptr<Model> m_valak;
 
-        // Main Character - medival-vagrant
-        Model m_mainCharacter;
+    BoundingSphere m_mainBoundingSphere;
+    BoundingOrientedBox m_mainOrientedBoundingBox;
 
-        Vector3 m_lightPosition = Vector3(0.0f, 1.0f, 0.0f);
-        bool m_usePerspectiveProjection = true;
-	};
-    }
+    Light m_light;
+    bool m_usePerspectiveProjection = true;
+    std::vector<shared_ptr<Model>> modelLists;
+};
+}

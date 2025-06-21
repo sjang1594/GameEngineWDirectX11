@@ -18,6 +18,7 @@ using Microsoft::WRL::ComPtr;
     extern ComPtr<ID3D11RasterizerState> solidCCWRS; // Counter-ClockWise
     extern ComPtr<ID3D11RasterizerState> wireRS;
     extern ComPtr<ID3D11RasterizerState> wireCCWRS;
+    extern ComPtr<ID3D11RasterizerState> postProcessingRS;
 
     // Depth Stencil States
     extern ComPtr<ID3D11DepthStencilState> drawDSS;       
@@ -26,19 +27,32 @@ using Microsoft::WRL::ComPtr;
 
     // Shader
     extern ComPtr<ID3D11VertexShader> basicVS;
-    extern ComPtr<ID3D11PixelShader> basicPS;
     extern ComPtr<ID3D11VertexShader> skyboxVS;
+    extern ComPtr<ID3D11VertexShader> samplingVS;
+    extern ComPtr<ID3D11VertexShader> normalVS;
+    extern ComPtr<ID3D11PixelShader> basicPS;
     extern ComPtr<ID3D11PixelShader> skyboxPS;
+    extern ComPtr<ID3D11PixelShader> combinePS;
+    extern ComPtr<ID3D11PixelShader> bloomDownPS;
+    extern ComPtr<ID3D11PixelShader> bloomUpPS;
+    extern ComPtr<ID3D11PixelShader> normalPS;
+    extern ComPtr<ID3D11PixelShader> simplePS;
+    extern ComPtr<ID3D11GeometryShader> normalGS;
 
     // Input Layouts
     extern ComPtr<ID3D11InputLayout> basicIL;
+    extern ComPtr<ID3D11InputLayout> samplingIL;
     extern ComPtr<ID3D11InputLayout> skyboxIL;
+    extern ComPtr<ID3D11InputLayout> postProcessingIL;
 
     // Graphics PipelineStates
     extern GraphicsPSO defaultSolidPSO;
     extern GraphicsPSO defaultWirePSO;
+    extern GraphicsPSO stencilMaskPSO;
     extern GraphicsPSO skyboxSolidPSO;
     extern GraphicsPSO skyboxWirePSO;
+    extern GraphicsPSO normalsPSO;
+    extern GraphicsPSO postProcessingPSO;
 
     void InitCommonStates(ComPtr<ID3D11Device> &device);
     void InitSamplers(ComPtr<ID3D11Device> &device);

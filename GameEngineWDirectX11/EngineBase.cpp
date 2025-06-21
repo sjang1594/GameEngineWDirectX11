@@ -19,7 +19,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 
 EngineBase::EngineBase()
-    : m_fullscreen(false), m_enableDepthTest(true), m_enableDepthWrite(false), m_wireframe(false),
+    : m_fullscreen(false), m_enableDepthTest(true), m_enableDepthWrite(false),
       m_screenWidth(1280), m_screenHeight(960), m_mainWindow(0),
       m_screenViewport(D3D11_VIEWPORT()) {
 
@@ -58,7 +58,9 @@ int EngineBase::Run() {
             ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
                         ImGui::GetIO().Framerate);
 
+#ifdef _DEBUG
             UpdateGUI();
+#endif 
             m_guiWidth = 0;
             ImGui::End();
             ImGui::Render(); 
@@ -89,6 +91,26 @@ bool EngineBase::Initialize() {
     SetForegroundWindow(m_mainWindow);
     
     return true;
+}
+
+void EngineBase::OnMouseMove(int mouseX, int mouseY) {
+    m_cursor_ndc_x = mouseX * 2.0f / m_screenWidth - 1.0f;
+    m_cursor_ndc_y = -mouseY * 2.0f / m_screenHeight + 1.0f;
+
+    m_cursor_ndc_x = std::clamp(m_cursor_ndc_x, -1.0f, 1.0f);
+    m_cursor_ndc_y = std::clamp(m_cursor_ndc_y, -1.0f, 1.0f);
+    m_camera->UpdateMouse(m_cursor_ndc_x, m_cursor_ndc_y);
+}
+
+bool EngineBase::UpdateMouseCtrl(const BoundingSphere &boundingSphere, Quaternion &qr,
+                                 Vector3 &dragTranslation, Vector3 &pickPoint) {
+    const Matrix view = m_camera->GetView();
+    const Matrix proj = m_camera->GetProj();
+
+    static float prevRatio = 0.0f;
+    static Vector3 prevPos(0.0f);
+    static Vector3 prevVector(0.0f);
+    return false;
 }
 
 LRESULT EngineBase::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -140,46 +162,47 @@ LRESULT EngineBase::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return ::DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-void EngineBase::OnMouseMove(int mouseX, int mouseY) {
-    m_cursor_ndc_x = mouseX * 2.0f / m_screenWidth - 1.0f;
-    m_cursor_ndc_y = -mouseY * 2.0f / m_screenHeight + 1.0f;
+void EngineBase::InitCubemaps(const wstring &basePath, const wstring &envFilename,
+                              const wstring &specularFilename,
+                              const wstring &irradianceFilename,
+                              const wstring &brdfFilename) {
 
-    m_cursor_ndc_x = std::clamp(m_cursor_ndc_x, -1.0f, 1.0f);
-    m_cursor_ndc_y = std::clamp(m_cursor_ndc_y, -1.0f, 1.0f);
-    m_camera->UpdateMouse(m_cursor_ndc_x, m_cursor_ndc_y);
-}
-
-void EngineBase::SetGlobalConstants(ComPtr<ID3D11Buffer> &globalConstantsGPU) {
-    m_d3dContext->VSSetConstantBuffers(1, 1, globalConstantsGPU.GetAddressOf());
-    m_d3dContext->PSSetConstantBuffers(1, 1, globalConstantsGPU.GetAddressOf());
-    m_d3dContext->GSSetConstantBuffers(1, 1, globalConstantsGPU.GetAddressOf());
+    D3D11Utils::CreateDDSTexture(m_d3dDevice, (basePath + envFilename).c_str(), true,
+                                 m_envSRV);
+    D3D11Utils::CreateDDSTexture(m_d3dDevice, (basePath + specularFilename).c_str(), true,
+                                 m_specularSRV);
+    D3D11Utils::CreateDDSTexture(m_d3dDevice, (basePath + irradianceFilename).c_str(),
+                                 true, m_diffuseSRV);
+    D3D11Utils::CreateDDSTexture(m_d3dDevice, (basePath + brdfFilename).c_str(), false,
+                                 m_brdfSRV);
 }
 
 void EngineBase::UpdateGlobalConstants(const Vector3 eyeWorld, const Matrix &view,
-                                       const Matrix &proj, const Matrix &refl) {
+                                       const Matrix &proj) {
     m_globalConstsCPU.eyeWorld = eyeWorld;
     m_globalConstsCPU.view = view.Transpose();
     m_globalConstsCPU.proj = proj.Transpose();
     m_globalConstsCPU.viewProj = (view * proj).Transpose();
 
     D3D11Utils::UpdateBuffer(m_d3dDevice, m_d3dContext, m_globalConstsCPU,
-                                     m_globalConstsGPU);
+                             m_globalConstsGPU);
 }
 
-void EngineBase::InitCubemaps(const wstring &basePath, const wstring &envFilename,
-                              const wstring &specularFilename,
-                              const wstring &irradianceFilename,
-                              const wstring &brdfFilename) {
+// For reflective object: such as mirror
+void EngineBase::UpdateGlobalConstants(const Vector3 eyeWorld, const Matrix &view,
+                                       const Matrix &proj, const Matrix &refl) {
+    m_globalConstsCPU.eyeWorld = eyeWorld;
+    m_globalConstsCPU.view = view.Transpose();
+    m_globalConstsCPU.proj = proj.Transpose();
+    m_globalConstsCPU.viewProj = (view * proj).Transpose();
     
-    std::array<CubeMapInfo, 4> textures = {{{envFilename, true, m_envSRV},
-                                            {specularFilename, true, m_specularSRV},
-                                            {irradianceFilename, true, m_diffuseSRV},
-                                            {brdfFilename, false, m_brdfSRV}}};
+    // TODO:
+}
 
-    for (const auto &tex : textures) {
-        D3D11Utils::CreateDDSTexture(m_d3dDevice, (basePath + tex.fileName).c_str(),
-                                     tex.isCubeMap, tex.srv);
-    }
+void EngineBase::SetGlobalConstants(ComPtr<ID3D11Buffer> &globalConstantsGPU) {
+    m_d3dContext->VSSetConstantBuffers(1, 1, globalConstantsGPU.GetAddressOf());
+    m_d3dContext->PSSetConstantBuffers(1, 1, globalConstantsGPU.GetAddressOf());
+    m_d3dContext->GSSetConstantBuffers(1, 1, globalConstantsGPU.GetAddressOf());
 }
 
 void EngineBase::CreateDepthBuffers() {
@@ -205,7 +228,7 @@ void EngineBase::CreateDepthBuffers() {
     ThrowIfFailed(
         m_d3dDevice->CreateTexture2D(&desc, 0, depthStencilBuffer.GetAddressOf()));
     ThrowIfFailed(m_d3dDevice->CreateDepthStencilView(depthStencilBuffer.Get(), 
-        nullptr, m_d3dDepthStencilView.GetAddressOf()));
+        NULL, m_d3dDepthStencilView.GetAddressOf()));
 }
 
 void EngineBase::SetPipelineState(const GraphicsPSO &pso) {
@@ -325,7 +348,7 @@ bool EngineBase::InitD3D() {
     DXGI_SWAP_CHAIN_DESC sd = {};
     sd.BufferDesc.Width = m_screenWidth;
     sd.BufferDesc.Height = m_screenHeight;
-    sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+    sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     sd.BufferDesc.RefreshRate.Numerator = 60;
     sd.BufferDesc.RefreshRate.Denominator = 1;
     sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
@@ -372,33 +395,23 @@ bool EngineBase::InitGUI() {
 }
 
 void EngineBase::SetViewport() {
-    static int previousGuiWidth = -1;
-
-    if (previousGuiWidth != m_guiWidth) {
-
-        previousGuiWidth = m_guiWidth;
-
-        // Set the viewport
-        ZeroMemory(&m_screenViewport, sizeof(D3D11_VIEWPORT));
-        m_screenViewport.TopLeftX = float(m_guiWidth);
-        m_screenViewport.TopLeftY = 0;
-        m_screenViewport.Width = float(m_screenWidth - m_guiWidth);
-        m_screenViewport.Height = float(m_screenHeight);
-        m_screenViewport.MinDepth = 0.0f;
-        m_screenViewport.MaxDepth = 1.0f; // Note: important for depth buffering
-
-        m_d3dContext->RSSetViewports(1, &m_screenViewport);
-    }
+    ZeroMemory(&m_screenViewport, sizeof(D3D11_VIEWPORT));
+    m_screenViewport.TopLeftX = 0;
+    m_screenViewport.TopLeftY = 0;
+    m_screenViewport.Width = float(m_screenWidth);
+    m_screenViewport.Height = float(m_screenHeight);
+    m_screenViewport.MinDepth = 0.0f;
+    m_screenViewport.MaxDepth = 1.0f;
+    m_d3dContext->RSSetViewports(1, &m_screenViewport);
 }
 
 void EngineBase::CreateBuffers() {
     ComPtr<ID3D11Texture2D> backBuffer;
     
     ThrowIfFailed(m_d3dSwapChain->GetBuffer(0, IID_PPV_ARGS(backBuffer.GetAddressOf())));
-    
-    ThrowIfFailed(m_d3dDevice->CreateRenderTargetView(backBuffer.Get(), nullptr,
-                                                      m_backBufferRTV.GetAddressOf())
-    );
+   
+    ThrowIfFailed(m_d3dDevice->CreateRenderTargetView(backBuffer.Get(), NULL,
+                                                      m_backBufferRTV.GetAddressOf()));
     
     ThrowIfFailed(m_d3dDevice->CheckMultisampleQualityLevels(
         DXGI_FORMAT_R16G16B16A16_FLOAT, 4, &m_numQualityLevels
@@ -428,9 +441,6 @@ void EngineBase::CreateBuffers() {
                                                         m_floatSRV.GetAddressOf()));
 
     ThrowIfFailed(m_d3dDevice->CreateRenderTargetView(m_floatBuffer.Get(), NULL, m_floatRTV.GetAddressOf()));
-
-    D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
-    m_floatRTV->GetDesc(&viewDesc);
 
     // FLOAT MSAA Resolve Buffer for SRV/RTV
     desc.SampleDesc.Count = 1;

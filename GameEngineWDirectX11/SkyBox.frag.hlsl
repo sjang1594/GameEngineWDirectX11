@@ -1,15 +1,4 @@
-TextureCube g_envTex : register(t0);
-TextureCube g_specularTex : register(t1);
-TextureCube g_irradianceTex : register(t2);
-SamplerState g_sampler : register(s0);
-
-cbuffer CubeMappingPixelConstantData : register(b0)
-{
-    int textureToDraw = 0;
-    float mipLevel = 0.0f;
-    float dummy1;
-    float dummy2;
-};
+#include "Common.hlsli"
 
 struct CubeMappingPixelShaderInput
 {
@@ -17,19 +6,23 @@ struct CubeMappingPixelShaderInput
     float3 posModel : POSITION;
 };
 
-float4 main(CubeMappingPixelShaderInput input) : SV_Target0
+struct PixelShaderOutput
 {
+    float4 pixelColor : SV_Target0;
+};
+
+PixelShaderOutput main(CubeMappingPixelShaderInput input) : SV_Target0
+{
+    float mipLevel = 0.0f;
+    PixelShaderOutput output;
     if (textureToDraw == 0)
-    {
-        return g_envTex.SampleLevel(g_sampler, input.posModel.xyz, mipLevel);
-    }
+        output.pixelColor = envIBLTex.SampleLevel(linearWrapSampler, input.posModel.xyz, envLodBias);
     else if (textureToDraw == 1)
-    {
-        return g_specularTex.SampleLevel(g_sampler, input.posModel.xyz, mipLevel);
-    }
+        output.pixelColor = specularIBLTex.SampleLevel(linearWrapSampler, input.posModel.xyz, envLodBias);
+    else if (textureToDraw == 2)
+        output.pixelColor = irradianceIBLTex.SampleLevel(linearWrapSampler, input.posModel.xyz, envLodBias);
     else
-    {
-        return g_irradianceTex.SampleLevel(g_sampler, input.posModel.xyz, mipLevel);
-    }
-    return float4(0.0, 0.0, 1.0, 0.0);
+        output.pixelColor = float4(135 / 255, 206 / 255, 235 / 255, 1);
+    output.pixelColor *= strengthIBL;
+    return output;
 }

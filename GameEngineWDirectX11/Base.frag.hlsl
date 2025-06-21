@@ -1,32 +1,19 @@
 #include "Common.hlsli"
-#include "BRDF.hlsli"
 
-TextureCube g_specularIBLTex : register(t0);
-TextureCube g_irradianceIBLTex : register(t1);
-Texture2D g_brdfTex : register(t2);
+Texture2D albedoTexture : register(t0);
+Texture2D normalTexture : register(t1);
+Texture2D heightTexture : register(t2);
+Texture2D aoTexture : register(t3);
+Texture2D metallicRoughnessTexture : register(t4);
+Texture2D emissiveTexture : register(t5);
 
-Texture2D g_albedoTexture : register(t3);
-Texture2D g_normalTexture : register(t4);
-Texture2D g_heightTexture : register(t5);
-Texture2D g_aoTexture : register(t6);
-Texture2D g_metallicTexture : register(t7);
-Texture2D g_roughnessTexture : register(t8);
-Texture2D g_emissiveTexture : register(t9);
-
-SamplerState g_linearSampler : register(s0);
-SamplerState g_clampSampler : register(s1);
-
-cbuffer BasicPixelConstantData : register(b0)
+cbuffer MaterialConstants : register(b0)
 {
-    float3 eyeWorld;
-    float dummy1;
-    Material material;
-    Light light[MAX_LIGHTS];
-    int reverseNormalMapY;
-    int heightScale;
+    float exposure;
+    float gamma;
+    int reverseNormalY;
     int isParallax;
-    int isGLTF;
-}
+};
 
 // fresnelR0
 // Water : (0.02, 0.02, 0.02)
@@ -51,8 +38,8 @@ float3 SchlickFresnel(float3 F0, float3 normal, float3 toEye)
 
 float3 SpecularIBL(float3 albedo, float3 normalW, float3 pixelToEye, float metallic, float roughness)
 {
-    float2 specularBRDF = g_brdfTex.Sample(g_clampSampler, float2(dot(normalW, pixelToEye), 1.0 - roughness)).rg;
-    float3 specularIrradiance = g_specularIBLTex.SampleLevel(g_linearSampler, reflect(-pixelToEye, normalW), roughness * 5.0f).rgb;
+    float2 specularBRDF = brdfTex.Sample(linearClampSampler, float2(dot(normalW, pixelToEye), 1.0 - roughness)).rg;
+    float3 specularIrradiance = specularIBLTex.SampleLevel(linearWrapSampler, reflect(-pixelToEye, normalW), roughness * 5.0f).rgb;
     float3 F0 = lerp(Fdielectric, albedo, metallic);
     return (F0 * specularBRDF.r + specularBRDF.g) * specularIrradiance;
 }
@@ -62,7 +49,7 @@ float3 DiffuseIBL(float3 albedo, float3 normalW, float3 pixelToEye, float3 metal
     float3 F0 = lerp(Fdielectric, albedo, metallic);
     float3 F = SchlickFresnelUnrealOld(F0, max(0.0, dot(normalW, pixelToEye)));
     float3 kd = lerp(1.0 - F, 0.0, metallic);
-    float3 irradiance = g_irradianceIBLTex.Sample(g_linearSampler, normalW).rgb;
+    float3 irradiance = irradianceIBLTex.Sample(linearWrapSampler, normalW).rgb;
     return kd * albedo * irradiance;
 }
 
@@ -101,19 +88,19 @@ float SchlickGGX(float NdotI, float NdotO, float roughness)
 uint querySpecularTextureLevels()
 {
     uint width, height, levels;
-    g_specularIBLTex.GetDimensions(0, width, height, levels);
+    specularIBLTex.GetDimensions(0, width, height, levels);
     return levels;
 }
 
 // Material Params
 float3 SampleAlbedo(float2 uv, float lod)
 {
-    return g_albedoTexture.SampleLevel(g_linearSampler, uv, lod);
+    return albedoTexture.SampleLevel(linearWrapSampler, uv, lod);
 }
 
 float3 SampleNormal(float2 uv, float lod, bool reverseY)
 {
-    float3 normalTex = g_normalTexture.SampleLevel(g_linearSampler, uv, lod).rgb * 2.0 - 1.0;
+    float3 normalTex = normalTexture.SampleLevel(linearWrapSampler, uv, lod).rgb * 2.0 - 1.0;
     if (reverseY)
         normalTex.y = -normalTex.y;
     return normalTex;
@@ -121,26 +108,22 @@ float3 SampleNormal(float2 uv, float lod, bool reverseY)
 
 float SampleAO(float2 uv, float lod)
 {
-    return g_aoTexture.SampleLevel(g_linearSampler, uv, lod).r;
+    return aoTexture.SampleLevel(linearWrapSampler, uv, lod).r;
 }
 
 float SampleRoughness(float2 uv, float lod)
 {
-    if (isGLTF)
-        return g_roughnessTexture.SampleLevel(g_linearSampler, uv, lod).g;
-    return g_roughnessTexture.SampleLevel(g_linearSampler, uv, lod).r;
+    return metallicRoughnessTexture.SampleLevel(linearWrapSampler, uv, lod).g;
 }
 
 float SampleMetallic(float2 uv, float lod)
 {
-    if (isGLTF)
-        return g_metallicTexture.SampleLevel(g_linearSampler, uv, lod).b;
-    return g_metallicTexture.SampleLevel(g_linearSampler, uv, lod).r;
+    return metallicRoughnessTexture.SampleLevel(linearWrapSampler, uv, lod).b;
 }
 
 float3 SampleEmissive(float2 uv, float lod)
 {
-    return g_emissiveTexture.SampleLevel(g_linearSampler, uv, lod).rgb;
+    return emissiveTexture.SampleLevel(linearWrapSampler, uv, lod).rgb;
 }
 
 void RetrieveMaterialParam(float2 uv, float lod, bool reverseY, 
@@ -184,7 +167,7 @@ float2 ParallaxOcclusionMap(float2 inputTexture, float3 normalW, float3 viewDir,
     
     while (sampleIndex < sampleCount + 1)
     {
-        currHeight = g_heightTexture.SampleGrad(g_linearSampler, inputTexture + currTexOffset, dx, dy).r;
+        currHeight = heightTexture.SampleGrad(linearWrapSampler, inputTexture + currTexOffset, dx, dy).r;
         currHeight = smoothstep(0.2, 0.8, currHeight);
         if (currHeight > currRayZ)
         {
@@ -236,15 +219,15 @@ PixelShaderOutput main(PixelShaderInput input)
     float3 viewDirTS = mul(viewDir, TBN);
     viewDirTS = normalize(viewDirTS);
     
-    if (isParallax)
-    {
-        uv = ParallaxOcclusionMap(uv, input.normalW, viewDir, viewDirTS, dist);
-    }
+    //if (isParallax)
+    //{
+    //    uv = ParallaxOcclusionMap(uv, input.normalW, viewDir, viewDirTS, dist);
+    //}
     
     float3 albedo, normalWorld, emissive;
     float ao, roughness, metallic;
     
-    RetrieveMaterialParam(uv, lod, reverseNormalMapY, albedo, normalWorld, 
+    RetrieveMaterialParam(uv, lod, reverseNormalY, albedo, normalWorld,
                           ao, roughness, metallic, emissive, TBN);
     
     float3 ambientLighting = AmbientLightingIBL(albedo, normalWorld, toEye, ao, metallic, roughness);
@@ -283,5 +266,6 @@ PixelShaderOutput main(PixelShaderInput input)
     
     PixelShaderOutput output;
     output.pixelColor = float4(ambientLighting + directLighting + emissive, 1.0);
+    //output.pixelColor = clamp(output.pixelColor, 0.0, 1000.0);
     return output;
 }

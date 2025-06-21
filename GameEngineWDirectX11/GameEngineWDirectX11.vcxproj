@@ -186,7 +186,6 @@
     <ClInclude Include="App.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="ConstantBuffer.h" />
-    <ClInclude Include="CubeMapping.h" />
     <ClInclude Include="D3D11Utils.h" />
     <ClInclude Include="EngineBase.h" />
     <ClInclude Include="GeometryGenerator.h" />
@@ -206,7 +205,6 @@
     <ClCompile Include="App.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="ConstantBuffer.cpp" />
-    <ClCompile Include="CubeMapping.cpp" />
     <ClCompile Include="D3D11Utils.cpp" />
     <ClCompile Include="EngineBase.cpp" />
     <ClCompile Include="GeometryGenerator.cpp" />
@@ -267,6 +265,9 @@
     </FxCompile>
     <FxCompile Include="Normal.vert.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Simple.frag.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="Sampling.vert.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>

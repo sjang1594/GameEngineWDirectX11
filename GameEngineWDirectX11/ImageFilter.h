@@ -3,6 +3,7 @@
 #include "D3D11Utils.h"
 #include "GeometryGenerator.h"
 #include "Mesh.h"
+#include "ConstantBuffer.h"
 
 namespace Luna {
 using DirectX::SimpleMath::Vector4;
@@ -26,16 +27,6 @@ class ImageFilter {
     void SetRenderTargets(const std::vector<ComPtr<ID3D11RenderTargetView>> &targets);
 
   public:
-    struct ImageFilterConstData {
-        float dx;
-        float dy;
-        float threshold;
-        float strength;
-        float option1;
-        float option2;
-        float option3;
-        float option4;
-    };
 
     ImageFilterConstData m_constData = {};
 

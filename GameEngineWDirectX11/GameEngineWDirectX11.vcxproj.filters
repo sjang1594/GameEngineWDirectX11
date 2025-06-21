@@ -35,9 +35,6 @@
     <ClInclude Include="GeometryGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CubeMapping.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Model.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -81,16 +78,10 @@
     <ClCompile Include="ModelLoader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Camera.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="D3D11Utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="GeometryGenerator.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CubeMapping.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ConstantBuffer.cpp">
@@ -115,6 +106,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="GraphicsPSO.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -148,9 +142,6 @@
     <FxCompile Include="Base.frag.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
-    <FxCompile Include="SkyBox.vert.hlsl">
-      <Filter>Shader</Filter>
-    </FxCompile>
     <FxCompile Include="SkyBox.frag.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
@@ -173,6 +164,12 @@
       <Filter>Shader</Filter>
     </FxCompile>
     <FxCompile Include="Normal.geom.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="SkyBox.vert.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Simple.frag.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
   </ItemGroup>

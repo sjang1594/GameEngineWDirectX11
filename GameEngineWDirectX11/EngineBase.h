@@ -11,15 +11,10 @@
 namespace Luna {
     using DirectX::BoundingSphere;
     using DirectX::SimpleMath::Quaternion;
+    using DirectX::SimpleMath::Vector3;
 	using Microsoft::WRL::ComPtr;
 	using std::vector;
 	using std::wstring;
-
-    struct CubeMapInfo {
-        const wstring &fileName;
-        bool isCubeMap;
-        ComPtr<ID3D11ShaderResourceView> &srv;
-    };
 	
 	class EngineBase {
       public:
@@ -36,9 +31,11 @@ namespace Luna {
         virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
         virtual void OnMouseMove(int mouseX, int mouseY);
         bool UpdateMouseCtrl(const BoundingSphere &boundingSphere, Quaternion &qr,
-                             Vector3 &dragTranslation, Vector3 &pickPoint) {}
+                             Vector3 &dragTranslation, Vector3 &pickPoint);
         
         void SetGlobalConstants(ComPtr<ID3D11Buffer> &globalConstantsGPU);
+        void UpdateGlobalConstants(const Vector3 eyeWorld, const Matrix &view,
+                                   const Matrix &proj);
         void UpdateGlobalConstants(const Vector3 eyeWorld, const Matrix &view,
                                    const Matrix &proj, const Matrix &refl);
         
@@ -66,8 +63,8 @@ namespace Luna {
         bool m_fullscreen;
         bool m_enableDepthTest = true;
         bool m_enableDepthWrite = false;
-        bool m_wireframe = false;
-
+        bool m_drawAsWire = false;
+        
         UINT                             m_numQualityLevels;
         D3D11_VIEWPORT                   m_screenViewport;
 
@@ -97,17 +94,19 @@ namespace Luna {
         ComPtr<ID3D11ShaderResourceView> m_specularSRV;
         ComPtr<ID3D11ShaderResourceView> m_brdfSRV;
 
-        // Mouse
+        // Post Processing
+        PostProcess m_postProcess;
+
+        // Input
         float m_cursor_ndc_x = 0.0f;
         float m_cursor_ndc_y = 0.0f;
+        bool m_leftBtn = false;
+        bool m_rightBtn = false;
         bool m_keyPressed[256] = {
             false,
         };
 
-        // Post Processing
-        PostProcess m_postProcess;
-
-        // Camera
+        // Component
         std::shared_ptr<Camera> m_camera;
 	};
 }

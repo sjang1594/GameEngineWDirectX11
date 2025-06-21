@@ -37,7 +37,7 @@ void Model::Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext>
         newMesh->m_indexCount = UINT(meshData.indices.size());
         newMesh->m_stride = UINT(sizeof(Vertex));
         D3D11Utils::CreateIndexBuffer(device, meshData.indices, newMesh->m_indexBuffer);
-        
+       
         // Color (Albedo) Map
         if (!meshData.albedoTextureFilename.empty()) {
             std::cout << "Loading albedo texture: " << meshData.albedoTextureFilename << std::endl;
@@ -71,6 +71,11 @@ void Model::Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext>
         // Metal & Roughness Map
         if (!meshData.roughnessTextureFilename.empty() ||
             !meshData.metallicTextureFilename.empty()) {
+            std::cout << "Loading Metallic-Roughness texture:\n"
+                      << "  Roughness: "
+                      << (meshData.roughnessTextureFilename.empty() ? "" : meshData.roughnessTextureFilename) << "\n"
+                      << "  Metallic : "
+                      << (meshData.metallicTextureFilename.empty() ? "" : meshData.metallicTextureFilename) << "\n";
             D3D11Utils::CreateMetallicRoughnessTexture(
                 device, context, meshData.metallicTextureFilename,
                 meshData.roughnessTextureFilename, newMesh->m_metallicRoughnessTexture,
@@ -84,7 +89,7 @@ void Model::Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext>
                                       true, newMesh->m_emissiveTexture,
                                       newMesh->m_emissiveTextureSRV);
         }
-
+        
         newMesh->m_vertexConstantBuffer = m_meshConstsGPU;
         newMesh->m_pixelConstantBuffer = m_materialConstsGPU;
 
@@ -100,7 +105,7 @@ void Model::UpdateConstantBuffers(ComPtr<ID3D11Device> &device,
 
 void Model::Render(ComPtr<ID3D11DeviceContext> &context) {
     for (const auto &mesh : m_meshes) {
-        context->VSSetConstantBuffers(0, 1, mesh->m_vertexBuffer.GetAddressOf());
+        context->VSSetConstantBuffers(0, 1, mesh->m_vertexConstantBuffer.GetAddressOf());
         context->PSSetConstantBuffers(0, 1, mesh->m_pixelConstantBuffer.GetAddressOf());
 
         // Align
@@ -115,7 +120,6 @@ void Model::Render(ComPtr<ID3D11DeviceContext> &context) {
                                     &mesh->m_stride, &mesh->m_offset);
 
         context->IASetIndexBuffer(mesh->m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         context->DrawIndexed(mesh->m_indexCount, 0, 0);
     }
 }

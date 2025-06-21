@@ -14,21 +14,36 @@ ComPtr<ID3D11RasterizerState> solidRS;
 ComPtr<ID3D11RasterizerState> solidCCWRS;
 ComPtr<ID3D11RasterizerState> wireRS;
 ComPtr<ID3D11RasterizerState> wireCCWRS;
+ComPtr<ID3D11RasterizerState> postProcessingRS;
 
 // Depth Stencil States
-ComPtr<ID3D11DepthStencilState> drawDSS;    
-ComPtr<ID3D11DepthStencilState> maskDSS;  
-ComPtr<ID3D11DepthStencilState> drawMaskedDSS; 
+ComPtr<ID3D11DepthStencilState> drawDSS;
+ComPtr<ID3D11DepthStencilState> maskDSS;
+ComPtr<ID3D11DepthStencilState> drawMaskedDSS;
 
 // Shaders
+// VS
 ComPtr<ID3D11VertexShader> basicVS;
 ComPtr<ID3D11VertexShader> skyboxVS;
+ComPtr<ID3D11VertexShader> samplingVS;
+ComPtr<ID3D11VertexShader> normalVS;
+
+// PS
 ComPtr<ID3D11PixelShader> basicPS;
 ComPtr<ID3D11PixelShader> skyboxPS;
+ComPtr<ID3D11PixelShader> combinePS;
+ComPtr<ID3D11PixelShader> bloomDownPS;
+ComPtr<ID3D11PixelShader> bloomUpPS;
+ComPtr<ID3D11PixelShader> normalPS;
+ComPtr<ID3D11PixelShader> simplePS;
+
+ComPtr<ID3D11GeometryShader> normalGS;
 
 // Input Layouts
 ComPtr<ID3D11InputLayout> basicIL;
+ComPtr<ID3D11InputLayout> samplingIL;
 ComPtr<ID3D11InputLayout> skyboxIL;
+ComPtr<ID3D11InputLayout> postProcessingIL;
 
 // Graphics Pipeline States
 GraphicsPSO defaultSolidPSO;
@@ -36,9 +51,11 @@ GraphicsPSO defaultWirePSO;
 GraphicsPSO stencilMaskPSO;
 GraphicsPSO skyboxSolidPSO;
 GraphicsPSO skyboxWirePSO;
+GraphicsPSO normalsPSO;
+GraphicsPSO postProcessingPSO;
 
-void InitCommonStates(ComPtr<ID3D11Device> &device) 
-{
+void Graphics::InitCommonStates(ComPtr<ID3D11Device> &device) {
+
     InitShaders(device);
     InitSamplers(device);
     InitRasterizerStates(device);
@@ -47,8 +64,7 @@ void InitCommonStates(ComPtr<ID3D11Device> &device)
     InitPipelineStates(device);
 }
 
-void InitSamplers(ComPtr<ID3D11Device> &device) {
-    // Basic Samplers
+void Graphics::InitSamplers(ComPtr<ID3D11Device> &device) {
     D3D11_SAMPLER_DESC sampDesc;
     ZeroMemory(&sampDesc, sizeof(sampDesc));
     sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -59,7 +75,6 @@ void InitSamplers(ComPtr<ID3D11Device> &device) {
     sampDesc.MinLOD = 0;
     sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
     device->CreateSamplerState(&sampDesc, linearWrapSS.GetAddressOf());
-
     sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
     sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
     sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -69,26 +84,31 @@ void InitSamplers(ComPtr<ID3D11Device> &device) {
     sampleStates.push_back(linearClampSS.Get());
 }
 
-void InitRasterizerStates(ComPtr<ID3D11Device> &device) {
+void Graphics::InitRasterizerStates(ComPtr<ID3D11Device> &device) {
+
     // Rasterizer States
     D3D11_RASTERIZER_DESC rastDesc;
     ZeroMemory(&rastDesc, sizeof(D3D11_RASTERIZER_DESC));
     rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
-    rastDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
+    rastDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_BACK;
     rastDesc.FrontCounterClockwise = false;
     rastDesc.DepthClipEnable = true;
-
+    rastDesc.MultisampleEnable = true;
     ThrowIfFailed(device->CreateRasterizerState(&rastDesc, solidRS.GetAddressOf()));
 
-    rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_WIREFRAME;
-    ThrowIfFailed(device->CreateRasterizerState(&rastDesc, wireCCWRS.GetAddressOf()));
+    ZeroMemory(&rastDesc, sizeof(D3D11_RASTERIZER_DESC));
+    rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
+    rastDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
+    rastDesc.FrontCounterClockwise = false;
+    rastDesc.DepthClipEnable = false;
+    ThrowIfFailed(
+        device->CreateRasterizerState(&rastDesc, postProcessingRS.GetAddressOf()));
 }
 
-void InitBlendStates(ComPtr<ID3D11Device> &device) {
-
+void Graphics::InitBlendStates(ComPtr<ID3D11Device> &device) {
 }
 
-void InitDepthStencilStates(ComPtr<ID3D11Device> &device) {
+void Graphics::InitDepthStencilStates(ComPtr<ID3D11Device> &device) {
     D3D11_DEPTH_STENCIL_DESC dsDesc;
     ZeroMemory(&dsDesc, sizeof(dsDesc));
     dsDesc.DepthEnable = true;
@@ -97,32 +117,91 @@ void InitDepthStencilStates(ComPtr<ID3D11Device> &device) {
     dsDesc.StencilEnable = false; // Stencil ºÒÇÊ¿ä
     dsDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
     dsDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
-    // Front Face
+    // frontface
     dsDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
     dsDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
     dsDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
     dsDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-    // Back Face
+    // backface
     dsDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
     dsDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
     dsDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
     dsDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-    
+
     ThrowIfFailed(device->CreateDepthStencilState(&dsDesc, drawDSS.GetAddressOf()));
 }
 
-void InitPipelineStates(ComPtr<ID3D11Device> &device) {
-    // Define Pass
-    // DefaultSolidPSO State
+void Graphics::InitShaders(ComPtr<ID3D11Device> &device) {
+
+    // Shaders, InputLayouts
+
+    vector<D3D11_INPUT_ELEMENT_DESC> basicIEs = {
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA,
+         0},
+        {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA,
+         0},
+    };
+
+    vector<D3D11_INPUT_ELEMENT_DESC> samplingIED = {
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA,
+         0},
+        {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 4 * 3, D3D11_INPUT_PER_VERTEX_DATA,
+         0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 4 * 3 + 4 * 3,
+         D3D11_INPUT_PER_VERTEX_DATA, 0},
+    };
+
+    vector<D3D11_INPUT_ELEMENT_DESC> skyboxIE = {
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA,
+         0},
+        {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA,
+         0},
+    };
+
+    D3D11Utils::CreateVertexShaderAndInputLayout(device, L"Base.vert.hlsl", basicIEs,
+                                                 basicVS, basicIL);
+
+    D3D11Utils::CreateVertexShaderAndInputLayout(device, L"Normal.vert.hlsl", basicIEs,
+                                                 normalVS, basicIL);
+
+    D3D11Utils::CreateVertexShaderAndInputLayout(device, L"Sampling.vert.hlsl", samplingIED,
+                                                 samplingVS, samplingIL);
+
+    D3D11Utils::CreateVertexShaderAndInputLayout(device, L"SkyBox.vert.hlsl", skyboxIE,
+                                                 skyboxVS, skyboxIL);
+
+    D3D11Utils::CreatePixelShader(device, L"Base.frag.hlsl", basicPS);
+    D3D11Utils::CreatePixelShader(device, L"Normal.frag.hlsl", normalPS);
+    D3D11Utils::CreatePixelShader(device, L"SkyBox.frag.hlsl", skyboxPS);
+    D3D11Utils::CreatePixelShader(device, L"Combine.frag.hlsl", combinePS);
+    D3D11Utils::CreatePixelShader(device, L"BloomDown.frag.hlsl", bloomDownPS);
+    D3D11Utils::CreatePixelShader(device, L"BloomUp.frag.hlsl", bloomUpPS);
+    D3D11Utils::CreatePixelShader(device, L"Simple.frag.hlsl", simplePS);
+    D3D11Utils::CreateGeometryShader(device, L"Normal.geom.hlsl", normalGS);
+}
+
+void Graphics::InitPipelineStates(ComPtr<ID3D11Device> &device) {
+
+    // defaultSolidPSO;
     defaultSolidPSO.m_vertexShader = basicVS;
     defaultSolidPSO.m_inputLayout = basicIL;
     defaultSolidPSO.m_pixelShader = basicPS;
     defaultSolidPSO.m_rasterizerState = solidRS;
     defaultSolidPSO.m_primitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-        // defaultWirePSO
+    // defaultWirePSO
     defaultWirePSO = defaultSolidPSO;
     defaultWirePSO.m_rasterizerState = wireRS;
+
+    // stencilMarkPSO;
+    stencilMaskPSO = defaultSolidPSO;
+    stencilMaskPSO.m_depthStencilState = maskDSS;
+    stencilMaskPSO.m_stencilRef = 1;
+    stencilMaskPSO.m_pixelShader = simplePS;
 
     // skyboxSolidPSO
     skyboxSolidPSO = defaultSolidPSO;
@@ -133,32 +212,18 @@ void InitPipelineStates(ComPtr<ID3D11Device> &device) {
     // skyboxWirePSO
     skyboxWirePSO = skyboxSolidPSO;
     skyboxWirePSO.m_rasterizerState = wireRS;
+
+    // normalsPSO
+    normalsPSO = defaultSolidPSO;
+    normalsPSO.m_vertexShader = normalVS;
+    normalsPSO.m_geometryShader = normalGS;
+    normalsPSO.m_pixelShader = normalPS;
+    normalsPSO.m_primitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
+
+    // postProcessingPSO
+    postProcessingPSO.m_vertexShader = samplingVS;
+    postProcessingPSO.m_inputLayout = samplingIL;
+    postProcessingPSO.m_rasterizerState = postProcessingRS;
 }
-
-void InitShaders(ComPtr<ID3D11Device> &device) {
-    std::vector<D3D11_INPUT_ELEMENT_DESC> basicIEs = {
-        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0},
-    };
-
-    vector<D3D11_INPUT_ELEMENT_DESC> skyboxIE = {
-        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0},
-    };
-
-    D3D11Utils::CreateVertexShaderAndInputLayout(device, L"BasePass.vert.hlsl", basicIEs, basicVS,
-                                                 basicIL);
-    D3D11Utils::CreatePixelShader(device, L"BasePass.frag.hlsl", basicPS);
-    D3D11Utils::CreateVertexShaderAndInputLayout(device, L"SkyBox.vert.hlsl", skyboxIE, skyboxVS,
-                                                 skyboxIL);
-    D3D11Utils::CreatePixelShader(device, L"SkyBox.frag.hlsl", basicPS);
-}
-
-
-
 } // namespace Graphics
-}
+} // namespace Luna

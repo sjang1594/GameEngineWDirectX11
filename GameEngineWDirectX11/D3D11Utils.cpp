@@ -154,7 +154,8 @@ void D3D11Utils::CreateTexture(ComPtr<ID3D11Device> &device, ComPtr<ID3D11Device
         ImageUtils::ReadImage(filename, image, width, height);
     }
 
-    CreateTextureImpl(device, context, width, height, image, pixelFormat, tex, srv);
+    CreateTextureImpl(device, context, width, height, image, pixelFormat, texture,
+                      textureResourceView);
 }
 
 void D3D11Utils::CreateMetallicRoughnessTexture(ComPtr<ID3D11Device> &device,
@@ -166,36 +167,59 @@ void D3D11Utils::CreateMetallicRoughnessTexture(ComPtr<ID3D11Device> &device,
     
     if (!metallicFilename.empty() && (metallicFilename == roughnessFilename)) {
         CreateTexture(device, context, metallicFilename, false, texture, srv);
+        return;
     } else {
+        int width = 0, height = 0;
         int mWidth = 0, mHeight = 0;
         int rWidth = 0, rHeight = 0;
-        std::vector<uint8_t> mImage;
-        std::vector<uint8_t> rImage;
-        
-        if (!metallicFilename.empty()) {
-            ImageUtils::ReadImage(metallicFilename, mImage, mWidth, mHeight);
-        }
+        std::vector<uint8_t> metallicImage;
+        std::vector<uint8_t> roughnessImage;
 
         if (!roughnessFilename.empty()) {
-            ImageUtils::ReadImage(roughnessFilename, rImage, rWidth, rHeight);
+            ImageUtils::ReadImage(roughnessFilename, roughnessImage, rWidth, rHeight);
         }
 
-        if (!metallicFilename.empty() && !roughnessFilename.empty()) {
-            assert(mWidth == rWidth);
-            assert(mHeight == rHeight);
+        if (!metallicFilename.empty()) {
+            ImageUtils::ReadImage(metallicFilename, metallicImage, mWidth, mHeight);
         }
 
-        vector<uint8_t> combinedImage(size_t(mWidth * mHeight) * 4);
+        const bool hasMetal = (mWidth > 0 && mHeight > 0 && !metallicImage.empty());
+        const bool hasRough = (rWidth > 0 && rHeight > 0 && !roughnessImage.empty());
+        const bool bothExist = hasMetal && hasRough;
+        
+        if (bothExist) {
+            if (mWidth != rWidth || mHeight != rHeight) {
+                std::cerr << "[CreateMetallicRoughnessTexture] Error: Metallic and "
+                             "Roughness texture sizes mismatch."
+                          << std::endl;
+                return;
+            }
+            width = mWidth;
+            height = mHeight;
+        } else if (hasMetal) {
+            width = mWidth;
+            height = mHeight;
+        } else if (hasRough) {
+            width = rWidth;
+            height = rHeight;
+        } else {
+            std::cerr
+                << "[CreateMetallicRoughnessTexture] Error: No valid input texture(s)."
+                << std::endl;
+            return;
+        }
+
+        vector<uint8_t> combinedImage(size_t(width * height) * 4);
         fill(combinedImage.begin(), combinedImage.end(), 0);
 
-        for (size_t i = 0; i < size_t(mWidth * mHeight); i++) {
-            if (rImage.size())
-                combinedImage[4 * i + 1] = rImage[4 * i]; // Green = Roughness
-            if (mImage.size())
-                combinedImage[4 * i + 2] = mImage[4 * i]; // Blue = Metalness
+        for (size_t i = 0; i < static_cast<size_t>(width * height); i++) {
+            if (hasRough)
+                combinedImage[4 * i + 1] = roughnessImage[4 * i]; // Green = Roughness
+            if (hasMetal)
+                combinedImage[4 * i + 2] = metallicImage[4 * i]; // Blue = Metalness
         }
 
-        CreateTextureImpl(device, context, mWidth, mHeight, combinedImage,
+        CreateTextureImpl(device, context, width, height, combinedImage,
                             DXGI_FORMAT_R8G8B8A8_UNORM, texture, srv);
     }
 }
@@ -261,7 +285,6 @@ void D3D11Utils::CreateDDSTexture(ComPtr<ID3D11Device> &device, const wchar_t *f
                                   const bool bIsCubeMap,
                                   ComPtr<ID3D11ShaderResourceView> &textureResourceView) {
     ComPtr<ID3D11Texture2D> texture;
-
     // https://github.com/microsoft/DirectXTK/wiki/DDSTextureLoader
     ThrowIfFailed(CreateDDSTextureFromFileEx(
         device.Get(), filename, 0, D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0,

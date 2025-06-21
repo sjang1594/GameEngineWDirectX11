@@ -11,7 +11,7 @@ ImageFilter::ImageFilter(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContex
 void ImageFilter::Initialize(ComPtr<ID3D11Device> &device, ComPtr<ID3D11DeviceContext> &context,
                              ComPtr<ID3D11PixelShader> &pixelShader, int width, int height) {
 
-    pixelShader.CopyTo(m_pixelShader.GetAddressOf());
+    ThrowIfFailed(pixelShader.CopyTo(m_pixelShader.GetAddressOf()));
 
     ZeroMemory(&m_viewport, sizeof(D3D11_VIEWPORT));
     m_viewport.TopLeftX = 0;

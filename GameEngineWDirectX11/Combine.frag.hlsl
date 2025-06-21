@@ -10,7 +10,8 @@ cbuffer ImageFilterConstData : register(b0)
     float strength;
     float exposure;
     float gamma;
-    float2 options;
+    float option3;
+    float option4;
 };
 
 struct SamplingPixelShaderInput
@@ -72,6 +73,5 @@ float4 main(SamplingPixelShaderInput input) : SV_TARGET
 
     // Tone Mapping  
     combined = LinearToneMapping(combined);
-    
     return float4(combined, 1.0f);
 }
